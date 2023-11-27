@@ -33,6 +33,7 @@ interface User {
     };
     isBlocked?: boolean;
     isApproved?:boolean
+    timeTolive?:Date|number
   }
   
   export default User;

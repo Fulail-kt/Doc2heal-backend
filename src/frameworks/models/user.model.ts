@@ -62,7 +62,17 @@ const userSchema = new mongoose.Schema<User>({
   isApproved:{
     type: Boolean,
     default: false,
+  },
+  timeTolive: {
+    type: Date,
+    default: function () {
+      // return new Date(Date.now() + 24 * 60 * 60 * 1000);
+      return new Date(Date.now() + 60 * 1000);
+
+    },
+    index: { expires: 0 },
   }
+  
 });
 
 const userModel = mongoose.model<User>("User", userSchema);

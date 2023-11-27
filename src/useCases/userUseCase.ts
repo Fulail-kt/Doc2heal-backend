@@ -2,18 +2,25 @@ import User from "../entities/user"
 import UserRepository from "../frameworks/repository/user.repository"
 import Encrypt from "../frameworks/passwordServices.ts/hashPassword"
 import JWTtoken from "../frameworks/passwordServices.ts/jwt"
+import OtpRepository from "../frameworks/repository/otp.repository"
+import Otp from "../entities/otp"
+import mongoose,{Types} from "mongoose"
+import { errorMonitor } from "nodemailer/lib/xoauth2"
+import userModel from "../frameworks/models/user.model"
 
 class UserUsecase {
     private userRepository: UserRepository
+    private otpRepository: OtpRepository
     private encrypt:Encrypt
     private jwtToken:JWTtoken
     constructor(userRepository: UserRepository) {
         this.userRepository = userRepository
+        this.otpRepository= new OtpRepository
         this.encrypt= new Encrypt()
         this.jwtToken=new JWTtoken()
     }
 
-    async register(user: User) {
+    async register(user: User,otp:number) {
         try {
             const newPassword = await this.encrypt.createHash(user.password);
 
@@ -25,19 +32,46 @@ class UserUsecase {
             }
             const response = await this.userRepository.create(NewUser)
             
-            if (response.success) {
+            if (!response.success) {
                 return {
-                    status: 200,
-                        success: true,
-                        message: response.message,
-                        user:response.user
-                }
-            } else {
-                return {
-                    status: 500,
+                    status:500,
                         success: false,
-                        message: response.message,}
+                        message: response.message,
+                        // user:response.user
+                }
+            } 
+
+           
+
+            let otpDetails:Otp={
+                // userId:new mongoose.Types.ObjectId(response.user?._id) as Types.ObjectId,
+                userMail:user.email,
+                otp,
+                expiresAt:new Date(Date.now() + 15 * 60 * 1000),
+                createdAt:new Date(Date.now() + 24 * 60 * 60 * 1000)
             }
+
+            
+            
+            const saveOtp= await this.otpRepository.SaveOtp(otpDetails)
+
+            if(saveOtp?.success){
+
+                return {
+                    status:200,
+                    success: true,
+                    message:response.message+" & "+"otp Sent",
+                    // user:NewUser,
+                    user:response?.user,
+                    email:response.user?.email,
+                    id:response.user?._id
+                }
+    
+            }
+
+
+
+
         } catch (error) {
             return {
                 status: 500,
@@ -145,7 +179,63 @@ class UserUsecase {
             };
         }
     }
+
+
+    async verifyOtp(email: string, code: number, id: string): Promise<{ success: boolean, message: string }> {
+        try {
+            console.log(email, code, "use=========================");
+    
+            // Check if the provided OTP matches the stored OTP for the user
+            const isOtpValid = await this.otpRepository.findOtpByEmailAndCode(email, code);
+    
+            console.log(isOtpValid, ";;;;;;;;;;------------");
+    
+            if (isOtpValid.success) {
+                // Log the ID before updating
+             
+    
+                // Update the user with timeTolive set to 0
+          
+
+
+                let ID=new mongoose.Types.ObjectId(id)
+             
+
+                const response= await userModel.findOne({email})
+    
+                if (response) {
+
+                    response.timeTolive = undefined;
+                    await response.save();
+                    return {
+                        success: true,
+                        message: 'OTP verified and user updated'
+                    };
+                } else {
+                    return {
+                        success: false,
+                        message: 'User not found or not updated'
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    message: 'Invalid OTP'
+                };
+            }
+        } catch (error) {
+            console.error('Error verifying OTP in UserUseCase:', error);
+            return {
+                success: false,
+                message: 'Error occurred while OTP verification'
+            };
+        }
+    }
+    
+      
     
 }
+
+
 
 export default UserUsecase

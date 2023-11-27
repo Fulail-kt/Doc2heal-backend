@@ -3,14 +3,31 @@ import UserUsecase from "../useCases/userUseCase";
 import UserRepository from "../frameworks/repository/user.repository";
 import User from "../entities/user";
 import { ObjectId } from "mongoose";
+import GenerateOtp from "../frameworks/utils/generateOtp";
+import SendMail from "../frameworks/utils/sendMail";
+
+declare module 'express-session' {
+    interface SessionData {
+      user?: {
+        email: string;
+        username: string;
+        phone: number;
+        password: string;
+      };
+    }
+  }
 
 class UserController{
     private userUsercase: UserUsecase
     private userRepository:UserRepository
+    private generateOtp:GenerateOtp
+    private sendMail:SendMail
 
     constructor(userUsercase: UserUsecase,){
         this.userUsercase = userUsercase;
         this.userRepository= new UserRepository;
+        this.generateOtp=new GenerateOtp()
+        this.sendMail=new SendMail()
     }
 
  
@@ -34,9 +51,9 @@ class UserController{
 
     async register(req: Request, res: Response) {
         try {
-            let { username, email, password, phone } = req.body.data;
+            let { username, email, password, phone } = req.body
 
-            console.log(req.body);
+            // console.log(req.body);
             
 
              username = username.trim();
@@ -90,10 +107,40 @@ class UserController{
                 password,
                 phone,
             }
-            const response = await this.userUsercase.register(user)
+
+
+
+            const Otp = await this.generateOtp.generateOtp(4);
+
+           const sendOtp=await this.sendMail.sendMail(username,email,Otp)
+
+
+           if(!sendOtp.success){
+
+            return res.json({
+                sendOtp
+            })
+            
+           }
+           
+            const response = await this.userUsercase.register(user,Otp)
+
+            if(!response?.success){
+               return res.status(500).json(response)
+            }
+
+            // console.log(response.user,"checking for seessin");
+
 
             
-            res.status(response.status).json(response)
+            // req.session.user=response.user;
+
+            // req.session.user = response.user;
+            // console.log('User details set in session:', req.session.user);
+            
+
+            res.status(response?.status).json(response)
+
         } catch (error) {
             console.error(error);
             res.status(500).json({
@@ -213,6 +260,40 @@ class UserController{
                 success: false,
                 message: "Internal server error. Please try again later.",
             });
+        }
+    }
+
+    async verifyOtp(req:Request,res:Response){
+        try {
+          let {code,email,id} = req.body
+
+          console.log(req.body);
+
+          code=parseInt(code)
+
+        //   console.log(req.session.user);
+        //   console.log('User details retrieved from session:', req.session.user);
+          
+        //   let newUser=req.session.user
+        //   if (newUser) {
+            // console.log('User details retrieved from session:', req.session.user);
+
+          const otp=await this.userUsercase.verifyOtp(email,code,id)
+
+        //   }else{
+
+        if(!otp.success){
+            return res.json({success:false,message:'an error occured try again'})
+        }
+        return res.json({success:true,message:'otp verified'})
+
+        //   }
+
+        //const otp = await this.userUsercase.verify() 
+
+        } catch (error:any) {
+
+            return res.json({success:false,message:error.message})
         }
     }
 }

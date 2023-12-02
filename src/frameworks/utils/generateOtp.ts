@@ -9,7 +9,12 @@ class GenerateOtp{
             otp += numericChars[randomIndex];
         }
 
-        return parseInt(otp);
+        if(otp.length==4){
+
+            return parseInt(otp);
+        }else{
+          return  this.generateOtp(4);
+        }
     }
 }
 

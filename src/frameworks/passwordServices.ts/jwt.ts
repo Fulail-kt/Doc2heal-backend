@@ -12,6 +12,11 @@ class JWTtoken implements jwt {
         throw new Error("JWT_KEY is not defined");
     }
 
+    verifyJWT(data:any):any{
+        const verify=JWT.verify(data,`${process.env.JWT_SECRET_KEY}`)
+        return verify;
+    }
+
 }
 
 export default JWTtoken

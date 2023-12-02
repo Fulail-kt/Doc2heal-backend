@@ -1,36 +1,31 @@
-import { Request, Response, response } from "express";
+import { Request, Response } from "express";
 import UserUsecase from "../useCases/userUseCase";
 import UserRepository from "../frameworks/repository/user.repository";
 import User from "../entities/user";
 import { ObjectId } from "mongoose";
 import GenerateOtp from "../frameworks/utils/generateOtp";
 import SendMail from "../frameworks/utils/sendMail";
+import OtpRepository from "../frameworks/repository/otp.repository";
+import Otp from "../entities/otp"
 
-declare module 'express-session' {
-    interface SessionData {
-      user?: {
-        email: string;
-        username: string;
-        phone: number;
-        password: string;
-      };
-    }
-  }
 
-class UserController{
+
+class UserController {
     private userUsercase: UserUsecase
-    private userRepository:UserRepository
-    private generateOtp:GenerateOtp
-    private sendMail:SendMail
+    private userRepository: UserRepository
+    private generateOtp: GenerateOtp
+    private sendMail: SendMail
+    private otpRepository:OtpRepository
 
-    constructor(userUsercase: UserUsecase,){
+    constructor(userUsercase: UserUsecase,) {
         this.userUsercase = userUsercase;
-        this.userRepository= new UserRepository;
-        this.generateOtp=new GenerateOtp()
-        this.sendMail=new SendMail()
+        this.userRepository = new UserRepository;
+        this.otpRepository= new OtpRepository
+        this.generateOtp = new GenerateOtp()
+        this.sendMail = new SendMail()
     }
 
- 
+
 
     // Validation function for email using regex
     private isValidEmail(email: string): boolean {
@@ -53,15 +48,12 @@ class UserController{
         try {
             let { username, email, password, phone } = req.body
 
-            // console.log(req.body);
-            
+            username = username.trim();
+            email = email.trim();
+            password = password.trim();
+            phone = phone.trim();
 
-             username = username.trim();
-             email = email.trim();
-             password = password.trim();
-             phone = phone.trim();
-
-             if (!username || !email || !password || !phone) {
+            if (!username || !email || !password || !phone) {
                 return res.status(400).json({
                     success: false,
                     message: "Missing required fields",
@@ -93,15 +85,22 @@ class UserController{
             }
 
             const existResponse = await this.userRepository.findByEmail(email);
-            
+
             if (existResponse.success) {
+
+                // if(!existResponse.user?.isVerified){
+
+                //   return  res.status(200).json({message:'Email is already exist',success:false})
+
+                // }
+
                 return res.status(400).json({
                     success: false,
                     message: "User already exists",
                 });
             }
 
-            let user:User={
+            let user: User = {
                 username,
                 email,
                 password,
@@ -112,32 +111,23 @@ class UserController{
 
             const Otp = await this.generateOtp.generateOtp(4);
 
-           const sendOtp=await this.sendMail.sendMail(username,email,Otp)
+            const sendOtp = await this.sendMail.sendMail(username, email, Otp)
 
 
-           if(!sendOtp.success){
+            if (!sendOtp.success) {
 
-            return res.json({
-                sendOtp
-            })
-            
-           }
-           
-            const response = await this.userUsercase.register(user,Otp)
+                return res.json({
+                    sendOtp
+                })
 
-            if(!response?.success){
-               return res.status(500).json(response)
             }
 
-            // console.log(response.user,"checking for seessin");
+            const response = await this.userUsercase.register(user, Otp)
 
+            if (!response?.success) {
+                return res.status(500).json(response)
+            }
 
-            
-            // req.session.user=response.user;
-
-            // req.session.user = response.user;
-            // console.log('User details set in session:', req.session.user);
-            
 
             res.status(response?.status).json(response)
 
@@ -152,10 +142,12 @@ class UserController{
 
 
 
-    async login(req:Request,res:Response){
+    async login(req: Request, res: Response) {
         try {
-            
-            let {email,password}=req.body
+
+            console.log('login')
+
+            let { email, password } = req.body
 
             email = email.trim();
             password = password.trim();
@@ -173,65 +165,92 @@ class UserController{
                     message: "Password must be at least 6 characters long",
                 });
             }
-   
-            const user=await this.userUsercase.login({email,password})
-            
-          
-            
+
+            const user = await this.userUsercase.login({ email, password })
+
+
+
             if (!user) {
-                res.status(401).json({ error: 'Invalid credentials' });
+                res.status(200).json({ message: 'Invalid credentials' });
                 return
-              }
-           
+            }
 
-              if(user.user?.isBlocked){
-                return res.status(400).json({
-                    message:'admin blocked',
-                    data:user,
+
+            if (user.success && user.isApproved==false ) {
+                console.log(user.message)
+                return res.status(200).json({
+                    success:true,
+                    message: user.message,
+                    user:user.storedUser,
+                    token:user.token
                 })
-              }
-
-              if(user.user?.role=="doctor"){
-               return res.status(200).json({
-                    success: true,
-                    message: "login successful",
-                    user,
-                  });
-              }
-
-              if(!user.success){
+            }
+            if (!user.success) {
+                console.log(user.message)
                 return res.status(400).json({
-                    message:user.message
+                    message: user.message
                 })
-              }
+            }
+
+            
+
+            if(user.user?.isVerified==false){
+
+                let Otp = await this.generateOtp.generateOtp(4);
+                let username=user.user?.username
+               
+
+            const sendOtp = await this.sendMail.sendMail(username, email, Otp)
+
+            let otpDetails: Otp = {
+                // userId:new mongoose.Types.ObjectId(response.user?._id) as Types.ObjectId,
+                userMail:user.user?.email,
+                otp:Otp,
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+                createdAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            }
+            const saveOtp = await this.otpRepository.SaveOtp(otpDetails)
 
 
-          console.log(user,"for token");
-          
+       
 
-              res.status(200).json({
+              return  res.status(200).json({
+                    success: false,
+                    message: "Please verify your account",
+                    // user:user?.user,
+                    isVerified:false,
+                    email:user?.user?.email
+                });
+    
+            }
+
+            console.log(user.message,"msg")
+
+            res.status(200).json({
                 success: true,
                 message: "login successful",
-                user,
-              });
-            
+                user:user?.user,
+                isVerified:true,
+                token:user?.token
+            });
+
 
         } catch (error) {
             console.error(error);
-           res.status(500).json({
-            success:'false',message:'error occured try again'
-           })
+            res.status(500).json({
+                success: 'false', message: 'error occured try again'
+            })
         }
     }
 
 
-    async updateUser(req:Request,res:Response){
+    async updateUser(req: Request, res: Response) {
 
         try {
 
-            let id=req.params.id
+            let id = req.params.id
 
-            const { username, email,password, phone } = req.body;
+            const { username, email, password, phone } = req.body;
 
             let updatedUser: User = {
                 username,
@@ -263,39 +282,77 @@ class UserController{
         }
     }
 
-    async verifyOtp(req:Request,res:Response){
+    async verifyOtp(req: Request, res: Response) {
         try {
-          let {code,email,id} = req.body
+            let { code, email, id } = req.body
 
-          console.log(req.body);
+            console.log(req.body);
 
-          code=parseInt(code)
+            code = parseInt(code)
 
-        //   console.log(req.session.user);
-        //   console.log('User details retrieved from session:', req.session.user);
-          
-        //   let newUser=req.session.user
-        //   if (newUser) {
-            // console.log('User details retrieved from session:', req.session.user);
 
-          const otp=await this.userUsercase.verifyOtp(email,code,id)
+            const otp = await this.userUsercase.verifyOtp(email, code, id)
 
-        //   }else{
 
-        if(!otp.success){
-            return res.json({success:false,message:'an error occured try again'})
-        }
-        return res.json({success:true,message:'otp verified'})
+            if (!otp.success) {
+                return res.json({ success: false, message: 'an error occured try again' })
+            }
 
-        //   }
+            return res.json({ success: true, message: 'otp verified' })
 
-        //const otp = await this.userUsercase.verify() 
 
-        } catch (error:any) {
 
-            return res.json({success:false,message:error.message})
+        } catch (error: any) {
+
+            return res.json({ success: false, message: error.message })
         }
     }
+
+   
+
+    async getAllusers(req: Request, res: Response) {
+      try {
+        // Explicitly handle different types and convert to string
+        
+        let user:string|any=req.query.user;
+        const response = await this.userUsercase.findAllUser(user);
+    
+        if (!response.success) {
+          return res.status(400).json({ success: false, message: response.message });
+        }
+    
+        return res.status(200).json({ success: true, message: response.message, user: response.data });
+      } catch (error: any) {
+        return res.status(500).json({ success: false, message: error.message });
+      }
+    }
+
+
+    async getUser(req:Request,res:Response){
+        try {
+
+            // console.log(req.user);
+            let userId = (req as any)?.user.id
+
+            const currentUser=await this.userUsercase.getuser(userId)
+            
+            if (!currentUser.success) {
+                return res.status(400).json({ success: false, message: currentUser.message });
+              }
+
+              console.log(currentUser,"44444444444444444");
+              
+          
+              return res.status(200).json({ success: true, message: currentUser.message,user:currentUser.user });
+            } catch (error: any) {
+              return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+    
+    
+
+
+
 }
 
 

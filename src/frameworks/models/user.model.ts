@@ -49,8 +49,8 @@ const userSchema = new mongoose.Schema<User>({
   ],
   role: {
     type: String,
-    enum: ["user", "doctor", "admin"],
-    default: "user",
+    enum: ["patient", "doctor","admin"],
+    default: "patient",
   },
   wallet: {
 
@@ -63,12 +63,14 @@ const userSchema = new mongoose.Schema<User>({
     type: Boolean,
     default: false,
   },
+  isVerified:{
+    type: Boolean,
+    default: false,
+  },
   timeTolive: {
     type: Date,
     default: function () {
-      // return new Date(Date.now() + 24 * 60 * 60 * 1000);
-      return new Date(Date.now() + 60 * 1000);
-
+      return new Date(Date.now() + 24 * 60 * 60 * 1000);
     },
     index: { expires: 0 },
   }

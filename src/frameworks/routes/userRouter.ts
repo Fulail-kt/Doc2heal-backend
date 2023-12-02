@@ -12,8 +12,10 @@ const userController = new UserController(userUsercase)
 
 routes.post('/register',(req, res) => userController.register(req, res));
 routes.post('/login',(req,res)=> userController.login(req,res))
-routes.put('/updateuser/:id',(req,res)=> userController.updateUser(req,res))
+routes.put('/updateUser/:id',authenticateToken,(req,res)=> userController.updateUser(req,res))
 routes.post('/verify-otp',(req,res)=> userController.verifyOtp(req,res))
+routes.get('/getAllusers',(req,res)=> userController.getAllusers(req,res))
+routes.get('/getuser',authenticateToken,(req,res)=> userController.getUser(req,res))
 
 
 

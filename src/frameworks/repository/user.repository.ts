@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import User from "../../entities/user"
 import userModel from "../models/user.model"
 
@@ -26,6 +26,19 @@ class UserRepository{
                  message: "database error"
             }
         }
+    }
+
+
+    async findById(id:string|ObjectId) {
+
+            const user = await userModel.findById(id);
+            if (user) {
+                
+                return user;
+            } else {
+                return null;
+            }
+  
     }
 
     async findByEmail(email:String){
@@ -56,44 +69,6 @@ class UserRepository{
    async findByIdAndUpdate(id:string,updatedUser:any){
     try {
 
-        console.log(updatedUser,"---");
-        
-
-        if (updatedUser.timeTolive === 0 || updatedUser.timeTolive === '0') {
-            let Id=new mongoose.Types.ObjectId(id)
-           let user=await userModel.findById(Id)
-
-           console.log(user,"p");
-           
-            
-           if (user) {
-            // Remove timeTolive field
-            console.log(user,"000000000000000000000000");
-            user.timeTolive = new Date();
-            await user.save();
-            console.log(user,"000000000000000000000000");
-          
-            // Save the updated user document
-            // await user.save();
-
-            return {
-                success: true,
-                message: "User updated successfully",
-                updatedUser: user.toObject(),
-            };
-
-          }else{
-
-            return {
-                success: false,
-                message: "User not found or not updated",
-            };
-          }
-        }
-
-        console.log("infind by and update---");
-        
-       
         const updatedUserDocument = await userModel.findByIdAndUpdate(id, updatedUser, { new: true });
 
         console.log(updatedUserDocument,"ddddddddd");
@@ -119,6 +94,34 @@ class UserRepository{
         };
     }
   }
+
+
+ async findAll(user:string){
+    try {
+        const USER=await userModel.find({role:user})
+        if(!USER){
+            return{
+                success:true,
+                status:400,
+                message:'doctors not found'
+            }
+        }
+        return{
+            success:true,
+            status:200,
+            data:USER,
+            message:'all doctors retrived'
+
+        }
+        
+    } catch (error:any) {
+        return{
+            success:false,
+            status:500,
+            message:error.message
+        }
+    }
+ }
 }
 
 export default UserRepository

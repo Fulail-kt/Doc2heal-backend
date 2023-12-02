@@ -27,12 +27,13 @@ interface User {
     report?: {
 
     }[];
-    role?: 'user' | 'doctor' | 'admin';
+    role?: 'patient' | 'doctor'|'admin';
     wallet?: {
 
     };
     isBlocked?: boolean;
-    isApproved?:boolean
+    isApproved?:boolean,
+    isVerified?:boolean;
     timeTolive?:Date|number
   }
   

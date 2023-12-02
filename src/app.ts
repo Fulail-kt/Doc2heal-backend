@@ -1,5 +1,6 @@
 import express from 'express';
 import userRoute from './frameworks/routes/userRouter';
+import adminRoute from './frameworks/routes/adminRouter';
 import { DbConnect } from './frameworks/config/DbConnet'
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -21,8 +22,9 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 
 app.use('/api/v1/', userRoute);
+app.use('/api/v1/admin', adminRoute);
 
-module.exports = {
+export default {
   start: () => {
     DbConnect();
     app.listen(PORT, () => {

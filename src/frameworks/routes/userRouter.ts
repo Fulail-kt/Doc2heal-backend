@@ -16,6 +16,7 @@ routes.put('/updateUser/:id',authenticateToken,(req,res)=> userController.update
 routes.post('/verify-otp',(req,res)=> userController.verifyOtp(req,res))
 routes.get('/getAllusers',(req,res)=> userController.getAllusers(req,res))
 routes.get('/getuser',authenticateToken,(req,res)=> userController.getUser(req,res))
+routes.post('/application',authenticateToken,(req,res)=> userController.doctorRegister(req,res))
 
 
 

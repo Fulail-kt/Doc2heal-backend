@@ -348,6 +348,48 @@ class UserController {
               return res.status(500).json({ success: false, message: error.message });
         }
     }
+
+
+    async doctorRegister(req:Request,res:Response){
+        console.log("hello applicatin");
+        
+
+        try {
+            let Id = (req as any)?.user.id
+            // console.log(req.body,"user");
+    
+            const user=req.body.data
+
+            console.log(user,Id,"---------ne-------");
+            
+    
+            const response=await this.userUsercase.updateUser(Id,user)
+
+            console.log(response.updatedUser);
+            
+            if (response.success) {
+                return res.status(200).json({
+                    success: true,
+                    message: "User updated successfully",
+                    user: response?.updatedUser,
+                });
+
+            } else {
+                return res.status(404).json({
+                    success: false,
+                    message: "User not found or not updated",
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({
+                success: false,
+                message: "Internal server error. Please try again later.",
+            });
+        }
+
+        
+    }
     
     
 

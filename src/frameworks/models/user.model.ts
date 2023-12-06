@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema<User>({
   fee: Number,
   timeSchedules: [String],
   hospital: String,
-  experience: Number,
+  experience: String,
   booking: [
     {
   

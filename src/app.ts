@@ -2,6 +2,7 @@ import express from 'express';
 import userRoute from './frameworks/routes/userRouter';
 import adminRoute from './frameworks/routes/adminRouter';
 import { DbConnect } from './frameworks/config/DbConnet'
+import {SocketServer} from './socket/socket.io'
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 require('dotenv').config();
@@ -24,10 +25,13 @@ app.use(cors(corsOptions));
 app.use('/api/v1/', userRoute);
 app.use('/api/v1/admin', adminRoute);
 
+const server = require('http').Server(app); 
+SocketServer(server); 
+
 export default {
   start: () => {
     DbConnect();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running at port ${PORT}`);
     });
   },

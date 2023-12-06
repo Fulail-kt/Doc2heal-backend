@@ -92,15 +92,16 @@ class UserUsecase {
         try {
 
             const { email, password } = credentials
-
+            
+            
             const response = await this.userRepository.findByEmail(email)
-
+            
             if (response.success) {
                 const storedUser = response.user;
-
+                
                 if (storedUser && storedUser.password) {
                     const passwordMatch = await this.encrypt.compare(password, storedUser.password);
-
+                    
                     if (!passwordMatch) {
                         // Incorrect password
                         return {
@@ -109,25 +110,26 @@ class UserUsecase {
                             message: "Invalid credentials",
                         };
                     }
-
-
+                    
+                    
                     const userId = storedUser?._id?.toString() || '';
                     const role = storedUser?.role || ''
                     const token = this.jwtToken.createJWT(userId, role);
-
-
+                    
+                    
+                    console.log("Dddddddddddd");
                     // Password is correct then // checking is blocked or not
-
+                    
                     if (storedUser?.isBlocked) {
                         return {
                             message: 'admin blocked',
                             user: storedUser,
                         }
                     }
-
-
+                    
+                    
                     // if user not verified
-
+                    
                     // if (!storedUser?.isVerified) {
 
                     //     let otpDetails: Otp = {
@@ -140,10 +142,10 @@ class UserUsecase {
                     //     return { success: false, message: 'Account is not verified,' }
                     // }
 
-
-
+                    
+                    
                     // checking user is doctor
-
+                    
                     if (storedUser?.role == "doctor") {
                         //checking approval status of Doctor
                         if (!storedUser?.isApproved) {
@@ -199,13 +201,15 @@ class UserUsecase {
     async updateUser(id: string, updatedUser: any) {
         try {
             const response = await this.userRepository.findByIdAndUpdate(id, updatedUser);
+            // console.log(response,"form updatae");
+            
 
             if (response.success) {
                 return {
                     status: 200,
                     success: true,
                     message: "Updated successfully",
-                    updatedUser
+                    updatedUser:response?.updatedUser
                 };
             } else {
                 return {
@@ -346,41 +350,28 @@ class UserUsecase {
     }
 
 
-    //     async getuser(userId:string)Promise<{ }> {
+//    async doctorApply(user:{}):Promise <{message:string,success:boolean,user?:{}}>{
 
+//     try {
+        
+//         const registeredUser=await this.userRepository.findByIdAndUpdate(id,user)
 
-    //         try{
-    //         // const response = await this.userRepository.(user)
+//         if(registeredUser){
+//             return{
+//                 success: true,
+//                 user:registeredUser,
+//                 message: 'Applied'
+//             }
+//         }
 
-
-
-    //         // if (!response.success) {
-    //         //     return {
-    //         //         success: false,
-    //         //         message: 'an error occured while retrived all doctors'
-    //         //     }
-    //         // }
-
-    //         // return {
-    //         //     success: true,
-    //         //     data: response.data,
-    //         //     message: 'Retrived all doctors'
-    //         // }
-    //     }catch (error: any) {
-
-    //         console.log(error.message);
-
-    //         return {
-    //             success: false,
-    //             message: '(an error occured from database)' + error.message
-    //         }
-
-    //     }
-
-
-    // }
-
-
+//         return{
+//             success: false,
+//             message: 'Application failed'
+//         }
+//     } catch (error) {
+        
+//     }
+//    }
 }
 
 

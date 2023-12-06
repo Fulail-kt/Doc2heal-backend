@@ -17,7 +17,7 @@ interface User {
     fee?: number;
     timeSchedules?: string[];
     hospital?: string;
-    experience?: number;
+    experience?: string;
     booking?: {
 
     }[];

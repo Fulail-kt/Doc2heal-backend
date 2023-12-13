@@ -11,7 +11,7 @@ interface User{
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
     const authToken = req.headers.authorization;
 
-    // console.log(authToken);
+    
     
     //check token exist
 
@@ -21,7 +21,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     try {
 
         const token=authToken
-        // console.log("ddddddd");
+        console.log("========================ddddddd");
         
 
         const jwtSecret: string = process.env.JWT_SECRET_KEY!;

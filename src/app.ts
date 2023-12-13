@@ -1,6 +1,7 @@
 import express from 'express';
 import userRoute from './frameworks/routes/userRouter';
 import adminRoute from './frameworks/routes/adminRouter';
+import doctorRoute from './frameworks/routes/doctorRouter';
 import { DbConnect } from './frameworks/config/DbConnet'
 import {SocketServer} from './socket/socket.io'
 import cors from 'cors';
@@ -23,6 +24,7 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 
 app.use('/api/v1/', userRoute);
+app.use('/api/v1/doctor', doctorRoute);
 app.use('/api/v1/admin', adminRoute);
 
 const server = require('http').Server(app); 

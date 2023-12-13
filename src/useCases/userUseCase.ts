@@ -4,18 +4,22 @@ import Encrypt from "../frameworks/passwordServices.ts/hashPassword"
 import JWTtoken from "../frameworks/passwordServices.ts/jwt"
 import OtpRepository from "../frameworks/repository/otp.repository"
 import Otp from "../entities/otp"
-import mongoose, { Types } from "mongoose"
+import mongoose, { ObjectId, Types } from "mongoose"
 import { errorMonitor } from "nodemailer/lib/xoauth2"
 import userModel from "../frameworks/models/user.model"
+import bookingModel from "../frameworks/models/booking.model"
+import BookingRepository from "../frameworks/repository/booking.repository"
 
 class UserUsecase {
     private userRepository: UserRepository
     private otpRepository: OtpRepository
+    private bookingRepository:BookingRepository
     private encrypt: Encrypt
     private jwtToken: JWTtoken
     constructor(userRepository: UserRepository) {
         this.userRepository = userRepository
         this.otpRepository = new OtpRepository
+        this.bookingRepository=new BookingRepository
         this.encrypt = new Encrypt()
         this.jwtToken = new JWTtoken()
     }
@@ -32,6 +36,7 @@ class UserUsecase {
                 email: user.email,
                 password: newPassword,
                 phone: user.phone,
+                gender:user.gender
             }
             const response = await this.userRepository.create(NewUser)
 
@@ -200,8 +205,13 @@ class UserUsecase {
 
     async updateUser(id: string, updatedUser: any) {
         try {
+
+            console.log(updatedUser,"-=-=-=-=-=-=-=-=-=-=-=-=-=-");
+            
             const response = await this.userRepository.findByIdAndUpdate(id, updatedUser);
-            // console.log(response,"form updatae");
+
+
+            console.log(response,"form updatae");
             
 
             if (response.success) {
@@ -234,12 +244,12 @@ class UserUsecase {
 
     async verifyOtp(email: string, code: number, id: string): Promise<{ success: boolean, message: string }> {
         try {
-            console.log(email, code, "use=========================");
+         
 
             // Check if the provided OTP matches the stored OTP for the user
             const isOtpValid = await this.otpRepository.findOtpByEmailAndCode(email, code);
 
-            console.log(isOtpValid, ";;;;;;;;;;------------");
+       
 
             if (isOtpValid.success) {
                 // Log the ID before updating
@@ -320,12 +330,15 @@ class UserUsecase {
 
 
 
-    async getuser(userId: string): Promise<{success:boolean,message:string,user?:{}}> {
+    async getuser(userId: string|any): Promise<{success:boolean,message:string,user?:{}}> {
         try {
 
             
+            console.log(userId,"user-----------------");
+            
             const user = await this.userRepository.findById(userId)
-
+            
+            console.log(user,"d----");
             if (!user) {
                 return {
                     success: false,
@@ -372,6 +385,70 @@ class UserUsecase {
         
 //     }
 //    }
+
+
+async updateProfile(url: string, Id: string) {
+    try {
+        let id = new mongoose.Types.ObjectId(Id);
+
+        console.log(id, url);
+
+        const updateImg = await userModel.findByIdAndUpdate(id, { image: url });
+
+        if (updateImg) {
+            return updateImg;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error(error);  // Log the error for debugging purposes
+        return { success: false, status: 500 };
+    }
+}
+
+async getbookings(Id:string){
+    try {
+        
+        const bookings= await this.bookingRepository.findByDoctorId(Id)
+
+        if(bookings){
+            return ({success:false,bookings})
+        }else{
+            return null
+        }
+    } catch (error) {
+        
+    }
+}
+
+
+async saveBooking(userId:string,bookingData:{username:string,age:number,note:string,bkId:string}){
+    try {
+        let bookingId=new mongoose.Types.ObjectId(bookingData.bkId)
+
+        const response= await this.bookingRepository.findById(bookingId)
+
+        if(response){
+
+            const res= await this.bookingRepository.findByIdAndUpdate(userId,bookingData)
+
+            if(res?.success){
+
+                return ({success:true,booking:res.booking})
+            }
+
+        }else{
+            return ({success:false,message:"booking Not found"})
+        }
+
+    } catch (error:any) {
+
+        return ({success:false,status:500,message:error.message,})
+        
+    }
+}
+
+
 }
 
 

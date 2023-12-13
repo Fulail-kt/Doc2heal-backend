@@ -3,7 +3,9 @@ interface User {
     email: string;
     password: string;
     image?: string;
+    documents?:[string];
     phone: number;
+    gender:"male"|"female"
     address?: {
       name: string;
       house: string;

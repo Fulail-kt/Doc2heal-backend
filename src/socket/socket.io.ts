@@ -41,6 +41,25 @@ export const SocketServer = (server: any) => {
       io.to(to).emit('peer:nego:final',{from:socket.id,ans})
     })
 
+    // chat functionality
+
+
+    
+
+    socket.on('send:message',({to,message})=>{
+      //get the sender's email
+      const fromEmail=socketToEmailMap.get(socket.id);
+
+      //get the reciever's socket.id
+
+      const toSocketId=emailSocketMap.get(to);
+
+      io.to(toSocketId).emit('')
+
+    })
+
+
+
   });
 
 

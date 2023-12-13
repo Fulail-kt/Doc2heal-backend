@@ -15,9 +15,19 @@ declare global {
         userId: string;
         role: string;
       };
+      file?: {
+        fieldname: string;
+        originalname: string;
+        encoding: string;
+        mimetype: string;
+        buffer: Buffer;
+        size: number;
+      };
     }
   }
 }
+
+
 
 import 'express-session';
 
@@ -33,6 +43,8 @@ import 'express-session';
 //     };
 //   }
 // }
+
+
 
 declare module 'express-session' {
   interface SessionData {

@@ -11,8 +11,7 @@ class JWTtoken implements jwt {
         
         if(jwtKey){
             
-            console.log("dddddddddd");
-            const token:string=JWT.sign({id:userId,role:role},jwtKey)
+            const token:string=JWT.sign({id:userId,role:role},jwtKey,{expiresIn:'24h'})
 
             return token
         }

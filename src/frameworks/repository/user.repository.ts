@@ -2,7 +2,7 @@ import mongoose, { ObjectId } from "mongoose";
 import User from "../../entities/user"
 import userModel from "../models/user.model"
 
-class UserRepository{
+class UserRepository {
     constructor(){}
 
     async create(user: User){
@@ -29,7 +29,12 @@ class UserRepository{
     }
 
 
-    async findById(id:string|ObjectId) {
+    async findById(id:string|any) {
+
+        console.log(id,"1212212");
+        
+
+        id=new mongoose.Types.ObjectId(id)
 
             const user = await userModel.findById(id);
             if (user) {
@@ -69,9 +74,10 @@ class UserRepository{
    async findByIdAndUpdate(id:string,updatedUser:any){
     try {
 
+        // console.log(updatedUser,"ddddddddd");
         const updatedUserDocument = await userModel.findByIdAndUpdate(id, updatedUser, { new: true });
 
-        console.log(updatedUserDocument,"ddddddddd");
+        console.log(updatedUserDocument,"-----------------------");
         
 
         if (updatedUserDocument) {

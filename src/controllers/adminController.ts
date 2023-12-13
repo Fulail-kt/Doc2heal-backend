@@ -5,7 +5,6 @@ class adminController{
 
     private adminuseCase:adminUseCase
 
-
     constructor(adminuseCase:adminUseCase){
         this.adminuseCase=adminuseCase
     }

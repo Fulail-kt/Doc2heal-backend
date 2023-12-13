@@ -15,7 +15,12 @@ const userSchema = new mongoose.Schema<User>({
     required: true,
   },
   image: String,
+  documents:[String],
   phone: Number,
+  gender: {
+    type: String,
+    enum: ["male","female",],
+  },
   address: [
     {
       name: String,
@@ -29,7 +34,11 @@ const userSchema = new mongoose.Schema<User>({
   ],
   specialization: String,
   fee: Number,
-  timeSchedules: [String],
+  timeSchedules: [{
+    Date:Date,
+    startTime:Date,
+    endTime:Date,
+  }],
   hospital: String,
   experience: String,
   booking: [

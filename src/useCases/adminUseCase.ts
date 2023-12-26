@@ -24,7 +24,7 @@ class adminUseCase{
             if (user) {
                 console.log("user found");
     
-                let isBlocked = !user.isBlocked;
+                const isBlocked = !user.isBlocked;
     
                 const blockedUser = await this.userRepository.findByIdAndUpdate(userId, { isBlocked });
     

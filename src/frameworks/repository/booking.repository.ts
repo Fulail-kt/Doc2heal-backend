@@ -60,6 +60,34 @@ class BookingRepository{
         }
     }
 
+    async findByUserId(userId:string|ObjectId|any){
+
+        try{
+        let convertedUserId:any = userId;
+    
+        if (userId) {
+            if (!mongoose.Types.ObjectId.isValid(userId)) {
+                convertedUserId = new mongoose.Types.ObjectId(userId);
+            }
+        } else {
+
+            throw new Error('User ID is required');
+        }
+
+        const bookings = await bookingModel.find({ userId: convertedUserId });
+
+      
+        if (bookings ) {
+            console.log('Bookings found:', bookings);
+            
+            return bookings;
+        } 
+    } catch (error:any) {
+        console.error('Error finding bookings:', error.message);
+        throw error;
+    }
+    }
+
     async findByIdAndUpdate(userId: string, bookingData: { username: string, age: number, note: string, bkId: string }) {
         try {
             let bookingId = new mongoose.Types.ObjectId(bookingData.bkId);
@@ -68,6 +96,7 @@ class BookingRepository{
                 status: 'booked',
                 note: bookingData.note,
                 userAge: bookingData.age,
+                userName: bookingData.username,
                 userId: new mongoose.Types.ObjectId(userId)
             };
     
@@ -83,27 +112,30 @@ class BookingRepository{
     }
 
 
-  async  findByDoctorIdWith(Id:string,condition:string){
+    async findByIdAndStatusUpdate(id:string|ObjectId|any,status:any){
+        try {
 
-    try {
-        
-        const bookings = await bookingModel.find({ doctorId: Id, status: condition });
+            if (id) {
+                if (!mongoose.Types.ObjectId.isValid(id)) {
+                    id = new mongoose.Types.ObjectId(id);
+                }
+            }
 
-        if(bookings){
-            return bookings
-        }else{
-            return null
+            console.log(status,"booking");
+            
+            
+            const updated=await bookingModel.findByIdAndUpdate(id, { status: status },{ new: true } )
+
+            if(updated){
+                return updated
+            }else{
+                return null
+            }
+        } catch (error) {
+            throw error
         }
-
-    } catch (error) {
-        
-        throw error
     }
 
-    
-
-    }
-    
 
 
 }

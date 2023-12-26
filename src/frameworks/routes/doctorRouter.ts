@@ -15,19 +15,20 @@ const doctorController=new DoctorController(doctorUseCase)
 
 routes.post('/setTimeslot',authenticateToken, (req, res) => doctorController.saveTimeSlot(req, res));
 
-routes.get('/getbookings',authenticateToken, (req, res) => doctorController.upcommingBookings(req, res));
+routes.get('/getAllbookings',authenticateToken, (req, res) => doctorController.Bookings(req, res));
+
+// get Doctors
+routes.get('/getdoctor', (req, res) => doctorController.getDoctor(req, res));
+
+routes.post('/cancelBooking',authenticateToken, (req,res)=> doctorController.BookingStatusUpdate(req,res))
 
 
 
-
-
-// routes.post('/login',(req,res)=> userController.login(req,res))
 // routes.put('/updateUser/:id',authenticateToken,(req,res)=> userController.updateUser(req,res))
 // routes.post('/verify-otp',(req,res)=> userController.verifyOtp(req,res))
 // routes.get('/getAllusers',(req,res)=> userController.getAllusers(req,res))
 // routes.get('/getuser',authenticateToken,(req,res)=> userController.getUser(req,res))
 // routes.patch('/editProfile', authenticateToken, upload.single('file'), (req, res) => userController.editProfile(req, res))
-// routes.post('/application',authenticateToken,(req,res)=> userController.doctorRegister(req,res))
 
 
 

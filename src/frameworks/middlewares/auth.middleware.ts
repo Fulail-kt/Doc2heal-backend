@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import userModel from "../models/user.model";
 
 interface User{
     id:string,
@@ -59,3 +60,27 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
 //     cpoo
 // }
+
+export const isBlocked = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+       
+        let Id = (req as any)?.user.id
+
+        console.log(Id);
+           
+            const user=await userModel.findById(Id)
+
+            if(user?.isBlocked){
+
+                console.log(user.isBlocked);
+                
+                return res.status(400).json({message:'admin blocked you', isBlocked:true})
+                
+            }else{
+                next()
+            }
+
+    } catch (error) {
+        return res.status(500).json({message:(error as Error).message})
+    }
+}

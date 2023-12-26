@@ -23,9 +23,9 @@ class adminController{
         res.status(response?.status).json(response?.user)
         
         
-    } catch (error:any) {
+    } catch (error) {
         
-        console.log(error.message);
+        console.log((error as Error).message);
         
         res.status(500).json({messge:'an error occured'})
     }

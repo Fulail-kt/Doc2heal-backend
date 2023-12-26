@@ -9,17 +9,20 @@ import { errorMonitor } from "nodemailer/lib/xoauth2"
 import userModel from "../frameworks/models/user.model"
 import bookingModel from "../frameworks/models/booking.model"
 import BookingRepository from "../frameworks/repository/booking.repository"
+import ConversationRepository from "../frameworks/repository/conversation.repository"
 
 class UserUsecase {
     private userRepository: UserRepository
     private otpRepository: OtpRepository
-    private bookingRepository:BookingRepository
+    private bookingRepository: BookingRepository
+    private conversationRepository: ConversationRepository
     private encrypt: Encrypt
     private jwtToken: JWTtoken
-    constructor(userRepository: UserRepository) {
+    constructor(userRepository: UserRepository, conversationRepository: ConversationRepository) {
         this.userRepository = userRepository
         this.otpRepository = new OtpRepository
-        this.bookingRepository=new BookingRepository
+        this.bookingRepository = new BookingRepository
+        this.conversationRepository = conversationRepository
         this.encrypt = new Encrypt()
         this.jwtToken = new JWTtoken()
     }
@@ -36,7 +39,7 @@ class UserUsecase {
                 email: user.email,
                 password: newPassword,
                 phone: user.phone,
-                gender:user.gender
+                gender: user.gender
             }
             const response = await this.userRepository.create(NewUser)
 
@@ -97,16 +100,16 @@ class UserUsecase {
         try {
 
             const { email, password } = credentials
-            
-            
+
             const response = await this.userRepository.findByEmail(email)
-            
-            if (response.success) {
-                const storedUser = response.user;
-                
+
+            if (response) {
+
+                const storedUser = response;
+
                 if (storedUser && storedUser.password) {
                     const passwordMatch = await this.encrypt.compare(password, storedUser.password);
-                    
+
                     if (!passwordMatch) {
                         // Incorrect password
                         return {
@@ -115,26 +118,24 @@ class UserUsecase {
                             message: "Invalid credentials",
                         };
                     }
-                    
-                    
+
+
                     const userId = storedUser?._id?.toString() || '';
                     const role = storedUser?.role || ''
                     const token = this.jwtToken.createJWT(userId, role);
-                    
-                    
-                    console.log("Dddddddddddd");
+
                     // Password is correct then // checking is blocked or not
-                    
+
                     if (storedUser?.isBlocked) {
                         return {
                             message: 'admin blocked',
                             user: storedUser,
                         }
                     }
-                    
-                    
+
+
                     // if user not verified
-                    
+
                     // if (!storedUser?.isVerified) {
 
                     //     let otpDetails: Otp = {
@@ -147,10 +148,10 @@ class UserUsecase {
                     //     return { success: false, message: 'Account is not verified,' }
                     // }
 
-                    
-                    
+
+
                     // checking user is doctor
-                    
+
                     if (storedUser?.role == "doctor") {
                         //checking approval status of Doctor
                         if (!storedUser?.isApproved) {
@@ -161,10 +162,6 @@ class UserUsecase {
 
 
                     }
-
-
-
-
                     return {
                         status: 200,
                         token,
@@ -187,7 +184,7 @@ class UserUsecase {
                 return {
                     status: 400,
                     success: false,
-                    message: response.message,
+                    message: "User not found",
                 };
             }
         } catch (error) {
@@ -206,20 +203,14 @@ class UserUsecase {
     async updateUser(id: string, updatedUser: any) {
         try {
 
-            console.log(updatedUser,"-=-=-=-=-=-=-=-=-=-=-=-=-=-");
-            
             const response = await this.userRepository.findByIdAndUpdate(id, updatedUser);
-
-
-            console.log(response,"form updatae");
-            
 
             if (response.success) {
                 return {
                     status: 200,
                     success: true,
                     message: "Updated successfully",
-                    updatedUser:response?.updatedUser
+                    updatedUser: response?.updatedUser
                 };
             } else {
                 return {
@@ -244,31 +235,19 @@ class UserUsecase {
 
     async verifyOtp(email: string, code: number, id: string): Promise<{ success: boolean, message: string }> {
         try {
-         
 
             // Check if the provided OTP matches the stored OTP for the user
             const isOtpValid = await this.otpRepository.findOtpByEmailAndCode(email, code);
 
-       
-
             if (isOtpValid.success) {
                 // Log the ID before updating
 
-
                 // Update the user with timeTolive set to 0
-
-
-
                 let ID = new mongoose.Types.ObjectId(id)
 
+                const response = await this.userRepository.otpSuccess(email)
 
-                const response = await userModel.findOne({ email })
-
-                if (response) {
-
-                    response.timeTolive = undefined;
-                    response.isVerified = true;
-                    await response.save();
+                if (response?.success) {
                     return {
                         success: true,
                         message: 'OTP verified and user updated'
@@ -279,6 +258,7 @@ class UserUsecase {
                         message: 'User not found or not updated'
                     };
                 }
+
             } else {
                 return {
                     success: false,
@@ -296,12 +276,9 @@ class UserUsecase {
 
 
 
-    async findAllUser(user: string): Promise<{ success: boolean, message: string, data?: any }> {
+    async findAllUser(): Promise<{ success: boolean, message: string, data?: any }> {
         try {
-
-
-            const response = await this.userRepository.findAll(user)
-
+            const response = await this.userRepository.findAll()
 
             if (!response.success) {
                 return {
@@ -330,15 +307,9 @@ class UserUsecase {
 
 
 
-    async getuser(userId: string|any): Promise<{success:boolean,message:string,user?:{}}> {
+    async getuser(userId: string | any): Promise<{ success: boolean, message: string, user?: {} }> {
         try {
-
-            
-            console.log(userId,"user-----------------");
-            
             const user = await this.userRepository.findById(userId)
-            
-            console.log(user,"d----");
             if (!user) {
                 return {
                     success: false,
@@ -346,15 +317,12 @@ class UserUsecase {
                 }
             }
 
-
-            
-
             return {
                 success: true,
                 user,
                 message: 'Retrived the user'
             }
-        } catch (error:any) {
+        } catch (error: any) {
             return {
                 success: false,
                 message: '(an error occured from database)' + error.message
@@ -363,90 +331,209 @@ class UserUsecase {
     }
 
 
-//    async doctorApply(user:{}):Promise <{message:string,success:boolean,user?:{}}>{
+    //    async doctorApply(user:{}):Promise <{message:string,success:boolean,user?:{}}>{
 
-//     try {
-        
-//         const registeredUser=await this.userRepository.findByIdAndUpdate(id,user)
+    //     try {
 
-//         if(registeredUser){
-//             return{
-//                 success: true,
-//                 user:registeredUser,
-//                 message: 'Applied'
-//             }
-//         }
+    //         const registeredUser=await this.userRepository.findByIdAndUpdate(id,user)
 
-//         return{
-//             success: false,
-//             message: 'Application failed'
-//         }
-//     } catch (error) {
-        
-//     }
-//    }
+    //         if(registeredUser){
+    //             return{
+    //                 success: true,
+    //                 user:registeredUser,
+    //                 message: 'Applied'
+    //             }
+    //         }
+
+    //         return{
+    //             success: false,
+    //             message: 'Application failed'
+    //         }
+    //     } catch (error) {
+
+    //     }
+    //    }
 
 
-async updateProfile(url: string, Id: string) {
-    try {
-        let id = new mongoose.Types.ObjectId(Id);
+    async updateProfile(url: string, Id: string) {
+        try {
+            let user = {
+                image: url
+            }
+            const update = await this.userRepository.findByIdAndUpdate(Id, user)
 
-        console.log(id, url);
 
-        const updateImg = await userModel.findByIdAndUpdate(id, { image: url });
-
-        if (updateImg) {
-            return updateImg;
-        } else {
-            return false;
+            if (update) {
+                return update;
+            } else {
+                return false;
+            }
+        } catch (error) {
+            console.error(error);
+            return { success: false, status: 500 };
         }
-    } catch (error) {
-        console.error(error);  // Log the error for debugging purposes
-        return { success: false, status: 500 };
     }
-}
-
-async getbookings(Id:string){
-    try {
-        
-        const bookings= await this.bookingRepository.findByDoctorId(Id)
-
-        if(bookings){
-            return ({success:false,bookings})
-        }else{
-            return null
-        }
-    } catch (error) {
-        
-    }
-}
 
 
-async saveBooking(userId:string,bookingData:{username:string,age:number,note:string,bkId:string}){
-    try {
-        let bookingId=new mongoose.Types.ObjectId(bookingData.bkId)
 
-        const response= await this.bookingRepository.findById(bookingId)
+    async saveDocuments(id: string, doc: any) {
 
-        if(response){
+        try {
+            const saveDocuments = await this.userRepository.saveDocuments(id, doc)
+            if (saveDocuments) {
 
-            const res= await this.bookingRepository.findByIdAndUpdate(userId,bookingData)
-
-            if(res?.success){
-
-                return ({success:true,booking:res.booking})
+                return {
+                    message: 'Documents successfully uploaded',
+                    success: true
+                }
+            } else {
+                return {
+                    message: 'Some error occured while uploading',
+                    success: false
+                }
             }
 
-        }else{
-            return ({success:false,message:"booking Not found"})
+        } catch (error) {
+            throw error
+        }
+    }
+
+
+    // Bookings=======
+
+    async getbookings(Id: string) {
+        try {
+
+            const bookings = await this.bookingRepository.findByDoctorId(Id)
+
+            if (bookings) {
+                return ({ success: true, bookings })
+            } else {
+                return null
+            }
+        } catch (error) {
+
+        }
+    }
+
+
+    async getAllbookings(Id: string) {
+        try {
+            const bookings = await this.bookingRepository.findByUserId(Id)
+
+            if (bookings) {
+                return ({ success: true, bookings })
+            } else {
+                return null
+            }
+        } catch (error) {
+
+        }
+    }
+
+
+
+
+    async saveBooking(userId: string, bookingData: { username: string, age: number, note: string, bkId: string }) {
+        try {
+            let bookingId = new mongoose.Types.ObjectId(bookingData.bkId)
+
+            const response = await this.bookingRepository.findById(bookingId)
+
+            if (response) {
+
+                const res = await this.bookingRepository.findByIdAndUpdate(userId, bookingData)
+                if (res?.success) {
+
+                    const Amount = response.fee;
+                    const percentageToSubtract = 20;
+                    const decimalEquivalent = percentageToSubtract / 100;
+                    const result = Amount - Amount * decimalEquivalent;
+
+                    const updateData = { bookingfee: result, type: "credit" }
+
+                    const updateAmount = await this.userRepository.findByIdAndUpdateWallet(response.doctorId, updateData)
+
+
+                    const createConversation= await this.conversationRepository.createConversation(userId,response.doctorId.toString())
+
+
+                    if (!updateAmount) {
+                        return { message: 'Error updating user wallet', success: false };
+                    }
+
+                    if(!createConversation){
+                        return { message: 'Error creating conversation', success: false };
+                    }
+                    
+                    return ({ success: true, booking: res.booking })
+                }
+
+            } else {
+                return ({ success: false, message: "booking Not found" })
+            }
+
+        } catch (error: any) {
+
+            return ({ success: false, status: 500, message: error.message, })
+
+        }
+    }
+
+
+
+    // Conversations---- && Message-----
+
+    async getConversation(userId: string) {
+
+        try {
+            const response = await this.conversationRepository.getConversation(userId)
+
+            if (response) {
+                return ({ success: true, conversation: response })
+            } else {
+                return ({ success: false })
+            }
+
+        } catch (error) {
+
+            throw error
+
         }
 
-    } catch (error:any) {
-
-        return ({success:false,status:500,message:error.message,})
-        
     }
-}
+
+    async sendMessage(conversationId:string, senderId:string, message:string){
+        try {
+            const response=await this.conversationRepository.sendMessage(conversationId, senderId, message)
+           
+            if (response) {
+                return ({ success: true, messsage:'Send message successfully' })
+            } else {
+                return ({ success: false })
+            }
+
+        } catch (error) {
+            
+            throw error
+        }
+    }
+
+    async getMessages(conversationId:string){
+        try {
+            const messages = await this.conversationRepository.getMessages(conversationId)
+    
+           if(messages){
+            return ({messages,success:true})
+           }else{
+            return ({success:false})
+           }
+    
+        } catch (error) {
+           throw error
+        }
+    }
+
 
 
 }

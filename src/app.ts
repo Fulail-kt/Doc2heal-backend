@@ -1,7 +1,7 @@
 import express from 'express';
 import userRoute from './frameworks/routes/userRouter';
 import adminRoute from './frameworks/routes/adminRouter';
-import doctorRoute from './frameworks/routes/doctorRouter';
+import doctorRoute from './frameworks/routes/doctorRouter'
 import { DbConnect } from './frameworks/config/DbConnet'
 import {SocketServer} from './socket/socket.io'
 import cors from 'cors';

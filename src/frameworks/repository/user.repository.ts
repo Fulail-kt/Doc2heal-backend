@@ -46,35 +46,33 @@ class UserRepository {
   
     }
 
-    async findByEmail(email:String){
+    async findByEmail(email:string){
         try {
             const user=await userModel.findOne({email:email})
 
+            console.log(user,"resposit");
+            
             if(user){
-                return{
-                    success:true,
-                   user,
-                   message:'user email found'
-                }  
+                return user
+                
             }else {
-                return {
-                  success: false,
-                  message: "user not found",
-                };
+                return null
+                
               }
         } catch (error) {
-            return {
-                success: false,
-                message: "database error",
-              };
+           throw error
         }
     }
 
 
-   async findByIdAndUpdate(id:string,updatedUser:any){
+   async findByIdAndUpdate(id:string|ObjectId|any,updatedUser:any){
     try {
 
-        // console.log(updatedUser,"ddddddddd");
+        
+        console.log("hait t");
+        console.log(updatedUser,"du");
+        
+        
         const updatedUserDocument = await userModel.findByIdAndUpdate(id, updatedUser, { new: true });
 
         console.log(updatedUserDocument,"-----------------------");
@@ -102,9 +100,39 @@ class UserRepository {
   }
 
 
- async findAll(user:string){
+  async otpSuccess(email:string){
+
     try {
-        const USER=await userModel.find({role:user})
+
+        const response = await userModel.findOne({email})
+
+        
+        if(response){
+
+        
+          
+            response.timeTolive = undefined;
+            response.isVerified = true;
+            await response.save();
+
+            return {success:true}
+
+        }else{
+
+            return {success:false}
+        }
+
+
+        
+    } catch (error) {
+        
+    }
+  }
+
+
+ async findAll(){
+    try {
+        const USER=await userModel.find()
         if(!USER){
             return{
                 success:true,
@@ -128,6 +156,71 @@ class UserRepository {
         }
     }
  }
+
+
+
+ async saveDocuments(id:string,doc:[string]){
+
+    try {
+        
+     const user=await this.findById(id)
+
+     if(!user){
+        return {sucess:false,message:'user not found'}
+     }
+
+     if(user){
+
+         let save =doc.map((url:string)=>{
+             user.documents?.push(url)
+         })
+     }
+
+       
+       user.formStatus="submited"
+        
+
+        await user.save();
+    } catch (error) {
+        
+    }
 }
+
+async findByIdAndUpdateWallet(id: string | ObjectId | any, updateData: {bookingfee:number,type:string}) {
+    try {
+
+        const options = { new: true };
+       
+        const updatedUser = await userModel.findByIdAndUpdate(
+            id,
+            {
+                $inc: { 'wallet.balance': updateData.bookingfee },
+                $push: {
+                    'wallet.transactions': {
+                        paymentType: updateData.type,
+                        amount: updateData.bookingfee,
+                    },
+                },
+            },
+            { new: true } 
+        );
+
+        if (updatedUser) {
+            return updatedUser;
+        } else {
+            return null;
+        }
+    } catch (error) {
+        throw error;
+    }
+}
+
+
+
+
+
+}
+
+
 
 export default UserRepository

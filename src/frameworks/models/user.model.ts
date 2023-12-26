@@ -62,8 +62,21 @@ const userSchema = new mongoose.Schema<User>({
     default: "patient",
   },
   wallet: {
-
-  },
+    balance: {
+        type: Number,
+        default: 0,
+    },
+    transactions: [
+        {
+            paymentType: {
+                type: String,
+            },
+            amount: {
+                type: Number,
+            },
+        },
+    ],
+},
   isBlocked: {
     type: Boolean,
     default: false,
@@ -76,6 +89,7 @@ const userSchema = new mongoose.Schema<User>({
     type: Boolean,
     default: false,
   },
+  formStatus:String,
   timeTolive: {
     type: Date,
     default: function () {

@@ -3,7 +3,7 @@ interface User {
     email: string;
     password: string;
     image?: string;
-    documents?:[string];
+    documents?: [string];
     phone: number;
     gender:"male"|"female"
     address?: {
@@ -15,6 +15,7 @@ interface User {
       state: string;
       District: string;
     }[];
+    formStatus?:string
     specialization?: string;
     fee?: number;
     timeSchedules?: string[];
@@ -31,8 +32,12 @@ interface User {
     }[];
     role?: 'patient' | 'doctor'|'admin';
     wallet?: {
-
-    };
+      balance: number,
+      transactions: [
+        {
+          paymentType: string,
+          amount: number,
+        }]};
     isBlocked?: boolean;
     isApproved?:boolean,
     isVerified?:boolean;

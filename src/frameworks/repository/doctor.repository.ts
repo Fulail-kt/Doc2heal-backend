@@ -29,64 +29,125 @@ class DoctorRepository{
 
 
 
-    async findByIdAndUpdateTime(value: { date: string, time: string }, id: string | mongoose.Types.ObjectId) {
+    // async findByIdAndUpdateTime(occurrences: [{ start: string, end: string }], id: string | mongoose.Types.ObjectId) {
+    //     if (!mongoose.Types.ObjectId.isValid(id)) {
+    //       id = new mongoose.Types.ObjectId(id);
+    //     }
+    
+    //     try {
+       
+    //       const doctor = await this.findById(id);
+    //       if (!doctor) {
+    //         throw new Error('Doctor not found.');
+    //       }
+    
+    //       // Check if any of the specified timeslots already exist
+    //       const existingTimeslots = await bookingModel.find({
+    //         doctorId: id,
+    //         time: { $in: occurrences.map(occurrence => new Date(occurrence.start)) },
+    //       });
+    
+    //       if (existingTimeslots.length > 0) {
+    //         // Handle the case where one or more timeslots already exist
+    //         // throw new Error('One or more timeslots already exist for the specified period.');
+    //         return null
+    //       }
+    
+    
+    //       const savedOccurrences = await Promise.all(
+    //         occurrences.map(async (occurrence: { start: string, end: string }) => {
+    //           const timeslot = new bookingModel({
+    //             doctorId: new mongoose.Types.ObjectId(id),
+    //             status: 'pending',
+    //             date: new Date(occurrence.start),
+    //             time: new Date(occurrence.start),
+    //             end: new Date(occurrence.end),
+    //             fee: doctor.fee,
+    //           });
+    
+    //           return await timeslot.save();
+    //         })
+    //       );
+    
+    //       if(savedOccurrences){
+    //           return savedOccurrences;
+
+    //       }else{
+    //         return null
+    //       }
+    //     } catch (error) {
+    //       throw error;
+    //     }
+    //   }
+
+
+    
+    async findByIdAndUpdateTime(occurrences: [{ start: string, end: string }], id: string | mongoose.Types.ObjectId) {
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            id = new mongoose.Types.ObjectId(id);
+          id = new mongoose.Types.ObjectId(id);
         }
-    
-        const dateObject = new Date(value.date);
-        const timeObject = new Date(`${value.date}T${value.time}:00Z`);
-    
-        // Checking if there's an existing booking within an hour
-
-        const existingBookings = await bookingModel.find({
-            doctorId: new mongoose.Types.ObjectId(id),
-            status: { $in: ["pending", "booked"] },
-            date: dateObject,
-            time: {
-                $gte: new Date(timeObject.getTime() - 60 * 60 * 1000), // 1 hour before
-                $lte: new Date(timeObject.getTime() + 60 * 60 * 1000)  // 1 hour after
-            }
-        });
-    
-        if (existingBookings.length > 0) {
-           
-            return( {message:'There is an existing booking within an hour. Cannot create a new booking.',success:false})
+      
+        try {
+          const doctor = await this.findById(id);
+          if (!doctor) {
+            throw new Error('Doctor not found.');
+          }
+      
+          const bufferStartTime = new Date(occurrences[0].start);
+          bufferStartTime.setHours(bufferStartTime.getHours() + 1);
+      
+          // Check if any existing schedules overlap with the new schedules (considering a one-hour buffer)
+          const overlappingSchedules = await bookingModel.find({
+            doctorId: id,
+            $or: [
+              {
+                $and: [
+                  { time: { $lt: bufferStartTime } },
+                  { end: { $gt: new Date(occurrences[0].start) } },
+                ],
+              },
+              {
+                $and: [
+                  { time: { $lt: new Date(occurrences[0].end) } },
+                  { end: { $gt: bufferStartTime } },
+                ],
+              },
+            ],
+          });
+      
+          if (overlappingSchedules.length > 0) {
+            // Handle the case where overlapping schedules exist
+            // throw new Error('Overlapping schedules exist within one hour of the new start time.');
+            console.log("heloo");
+            
+            return null;
+          }
+      
+          const savedOccurrences = await Promise.all(
+            occurrences.map(async (occurrence: { start: string, end: string }) => {
+              const timeslot = new bookingModel({
+                doctorId: new mongoose.Types.ObjectId(id),
+                status: 'pending',
+                date: new Date(occurrence.start),
+                time: new Date(occurrence.start),
+                end: new Date(occurrence.end),
+                fee: doctor.fee,
+              });
+      
+              return await timeslot.save();
+            })
+          );
+      
+          if (savedOccurrences) {
+            return savedOccurrences;
+          } else {
+            return null;
+          }
+        } catch (error) {
+          throw error;
         }
-
-        const doctor= await this.findById(id)
-
-       if(doctor){
-
-        console.log(doctor,"doctotr save time");
-        
-        if(!doctor.fee){
-            return ({message:'invalid amount add your fee'})
-        }
-
-           const doctorId = new mongoose.Types.ObjectId(id);
-           const timeSchedules = {
-               doctorId,
-               status: "pending",
-               date: dateObject,
-               time: timeObject,
-               end:new Date(timeObject.getTime() + 60 * 60 * 1000),
-               fee: doctor?.fee
-           };
-
-
-           const createSlot = await bookingModel.create([timeSchedules], { new: true });
-
-           if(createSlot){
-               return({message:'Successfully created Timeslot',success:true})
-           }
-       }else{
-
-        return ({message:'some error occured try after some time'})
-       }
-
-    }
-    
+      }
+      
     
 }
 

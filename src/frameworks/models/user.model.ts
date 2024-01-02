@@ -51,11 +51,13 @@ const userSchema = new mongoose.Schema<User>({
    
     },
   ],
-  report: [
+  bankDetails:
     {
-
+      AcNumber:Number,
+      Repeataccount:Number,
+      ifsce:String,
+      accountHolder:String
     },
-  ],
   role: {
     type: String,
     enum: ["patient", "doctor","admin"],
@@ -74,6 +76,10 @@ const userSchema = new mongoose.Schema<User>({
             amount: {
                 type: Number,
             },
+            date: {
+              type: Date,
+              default:Date.now()
+          },
         },
     ],
 },

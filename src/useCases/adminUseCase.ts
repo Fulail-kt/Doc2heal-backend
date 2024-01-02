@@ -1,12 +1,10 @@
 import UserRepository from "../frameworks/repository/user.repository"
 
 
-class adminUseCase{
+class adminUseCase {
 
 
     private userRepository: UserRepository
-
-    
     constructor(userRepository: UserRepository) {
         this.userRepository = userRepository
 
@@ -14,20 +12,17 @@ class adminUseCase{
 
 
 
-
-
-
     async blockUser(userId: string) {
         try {
             const user = await this.userRepository.findById(userId);
-    
+
             if (user) {
                 console.log("user found");
-    
+
                 const isBlocked = !user.isBlocked;
-    
+
                 const blockedUser = await this.userRepository.findByIdAndUpdate(userId, { isBlocked });
-    
+
                 return {
                     status: 200,
                     user: blockedUser,
@@ -38,28 +33,28 @@ class adminUseCase{
                     message: "User not found",
                 };
             }
-        } catch (error: any) {
-            console.error(error.message);
+        } catch (error) {
+            console.error((error as Error).message);
             return {
                 status: 500,
                 message: "Internal server error. Please try again later.",
             };
         }
-        
+
     }
-    
+
 
     async approveUser(userId: string) {
         try {
             const user = await this.userRepository.findById(userId);
-    
+
             if (user) {
                 console.log("user found");
-    
+
                 let isApproved = !user.isApproved;
-    
+
                 const approvedstatus = await this.userRepository.findByIdAndUpdate(userId, { isApproved });
-    
+
                 return {
                     status: 200,
                     user: approvedstatus,
@@ -70,16 +65,66 @@ class adminUseCase{
                     message: "User not found",
                 };
             }
-        } catch (error: any) {
-            console.error(error.message);
+        } catch (error) {
+            console.error((error as Error).message);
             return {
                 status: 500,
                 message: "Internal server error. Please try again later.",
             };
         }
-        
+
     }
 
+    async applicationStatus(doctorId: string, status: string) {
+        try {
+            let updateData: { formStatus: string; role: string; isApproved: boolean } = {
+                formStatus: "",
+                role: "",
+                isApproved: false
+            };
+            if (status === "Accepted") {
+                updateData = {
+                    formStatus: status,
+                    role: 'doctor',
+                    isApproved: true
+                };
+            } else if (status === "Rejected") {
+                updateData = {
+                    formStatus: status,
+                    role: 'patient',
+                    isApproved: false
+                };
+            }
+            const verification = await this.userRepository.findByIdAndUpdate(doctorId, updateData);
+            if(verification.success){
+                return {
+                    success: true,
+                    message: "User updated successfully",
+                    updatedUser: verification.updatedUser
+                }
+            } else{
+                return{
+                    success: false,
+                    message: "error occured while updating verification",
+                }
+            }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    async totalEarnings(){
+        try {
+            const totalEarnings = await this.userRepository.adminEarnings()
+            if(totalEarnings){
+                return({success:true,totalEarnings})
+            }else{
+                return({success:false})
+            }
+        } catch (error) {
+            throw error
+        }
+    }
 
 
 

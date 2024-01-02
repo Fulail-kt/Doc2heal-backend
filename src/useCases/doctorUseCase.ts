@@ -24,21 +24,14 @@ class DoctorUseCase {
 
 
 
-    async timeSlot(value: { date: string; time: string }, id: string) {
-
-
+    async timeSlot(occurrences: [{ start: string; end: string }], id: string) {
         try {
 
-            const response = await this.doctorRepository.findByIdAndUpdateTime(value, id);
-
-            if (!response?.success) {
-                return ({ message: response?.message })
+            const response = await this.doctorRepository.findByIdAndUpdateTime(occurrences, id);
+            if(!response){
+                return ({ success:false, message: "Failed Creating Time Schedules may any of the time already existed" })
             }
-
-
-            return ({ message: response?.message })
-
-
+            return ({success:true, message: "Time Schedule created succcessfully" })
 
         } catch (error) {
 
@@ -76,15 +69,13 @@ class DoctorUseCase {
             if (!booking) {
                 return { message: 'Booking not found', success: false };
             }
+            const updateBooking = await this.bookingRepository.findByIdAndStatusUpdate(id, status);
 
-            const cancelledBooking = await this.bookingRepository.findByIdAndStatusUpdate(id, status);
-
-            if (!cancelledBooking) {
-                return { message: 'Error occurred while cancelling', success: false };
+            if (!updateBooking) {
+                return { message: 'Error occurred while updating status', success: false };
             }
 
             if (status === 'cancelled') {
-
 
                 const user = await this.userRepository.findById(booking.userId);
 
@@ -92,8 +83,7 @@ class DoctorUseCase {
                     return { message: 'User not found', success: false };
                 }
 
-
-                const updateData = { bookingfee: booking.fee, type: "credit" }
+                const updateData = { bookingfee: booking.fee, type: "credit",id:booking._id }
 
                 const updatedUser = await this.userRepository.findByIdAndUpdateWallet(user._id, updateData);
 
@@ -101,17 +91,35 @@ class DoctorUseCase {
                     return { message: 'Error updating user wallet', success: false };
                 }
 
-
             }
 
-            return { message: 'Booking cancelled successfully', success: true };
+            if (status == "completed") {
+                
+                const Amount = booking.fee;
+                const percentageToSubtract = 20;
+                const decimalEquivalent = percentageToSubtract / 100;
+                const result = Amount - Amount * decimalEquivalent;
+
+                const updateData = { bookingfee: result, type: "credit",id:booking._id }
+
+            
+                
+
+                const updateAmount = await this.userRepository.findByIdAndUpdateWallet(booking.doctorId, updateData)
+
+                if (!updateAmount) {
+                    return { message: 'Error updating doctor wallet', success: false };
+                }
+            }
+
+            return { message: 'Booking status updated successfully', success: true };
         } catch (error) {
             console.error('Error in BookingStatus:', error);
             throw error;
         }
     }
 
-    async getDoctor(doctorId:string|ObjectId) {
+    async getDoctor(doctorId: string | ObjectId) {
         try {
             const doctor = await this.doctorRepository.findById(doctorId)
             if (!doctor) {
@@ -126,14 +134,79 @@ class DoctorUseCase {
                 doctor,
                 message: 'Retrived the doctor'
             }
-        } catch (error: any) {
+        } catch (error) {
             return {
                 success: false,
-                message: '(an error occured from database)' + error.message
+                message: '(an error occured from database)' + (error as Error).message
             }
         }
     }
 
+    async updateBanking(docId: string, data: { acNumber: number; repeatAcNumber: number; ifscCode: string; accountHolder: string }) {
+
+        try {
+            const updatedUser = {
+                bankDetails: {
+                    AcNumber: data.acNumber,
+                    Repeataccount:data.repeatAcNumber,
+                    ifsce:data.ifscCode,
+                    accountHolder:data.accountHolder
+                }
+            };
+    
+            const updateBanking = await this.userRepository.findByIdAndUpdate(docId, updatedUser);
+    
+            if (updateBanking) {
+                return {
+                    success: true,
+                    message: "Banking details updated successfully",
+                    updatedBanking: updateBanking
+                };
+            } else {
+                return {
+                    success: false,
+                    message: "User not found or banking details not updated",
+                };
+            }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    async getAllbookings(){
+        try {
+            const allBookings = await this.bookingRepository.findAll()
+
+            if (allBookings) {
+                return {
+                    allBookings,
+                    message: 'successfully retrived',
+                    success: true
+                }
+            } else {
+                return {
+                    message: 'an error occured',
+                    success: false
+                }
+            }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    async getAlldoctors(){
+        try {
+            const allDoctors= await this.userRepository.findAllDoctor()
+
+            if(allDoctors){
+                return({success:true,doctors:allDoctors})
+            }else{
+                return ({success:false})
+            }
+        } catch (error) {
+            throw error
+        }
+    }
 
 
 

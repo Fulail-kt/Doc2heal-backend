@@ -1,5 +1,6 @@
 import mongoose, { ObjectId } from "mongoose";
 import bookingModel from "../models/booking.model";
+import moment from "moment";
 
 
 
@@ -15,21 +16,51 @@ class BookingRepository{
             }
             const booking = await bookingModel.findById(Id);
     
-           console.log(booking);
-           
             if (booking) {
-                console.log('Booking found:', booking);
                 
                 return booking;
             } else {
                 console.log('Booking not found');
                
             }
-        } catch (error:any) {
-            console.error('Error finding booking:', error.message);
+        } catch (error) {
+            console.error('Error finding booking:', (error as Error).message);
         
         }
 
+    }
+
+    async findByDoctorIdfilter(doctorId:any,date:string) {
+        try {
+            let convertedDoctorId = doctorId;
+    
+            if (doctorId) {
+                if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+                    convertedDoctorId = new mongoose.Types.ObjectId(doctorId);
+                }
+            } else {
+                // Handle the case where doctorId is not provided
+                throw new Error('Doctor ID is required');
+            }
+
+            const bookings = await bookingModel.find({
+                doctorId: doctorId,
+                date: {
+                  $gte: moment(date).startOf('day').toDate(),
+                  $lt: moment(date).endOf('day').toDate(),
+                },
+              });
+
+            // const bookings = await bookingModel.find({ doctorId: convertedDoctorId });
+    
+            if (bookings ) {  
+                return bookings;
+            } 
+        } catch (error) {
+            console.error('Error finding bookings:', (error as Error).message);
+       
+            throw error;
+        }
     }
 
     async findByDoctorId(doctorId:any) {
@@ -48,13 +79,11 @@ class BookingRepository{
             const bookings = await bookingModel.find({ doctorId: convertedDoctorId });
     
           
-            if (bookings ) {
-                console.log('Bookings found:', bookings);
-                
+            if (bookings ) {              
                 return bookings;
             } 
-        } catch (error:any) {
-            console.error('Error finding bookings:', error.message);
+        } catch (error) {
+            console.error('Error finding bookings:', (error as Error).message);
        
             throw error;
         }
@@ -73,17 +102,17 @@ class BookingRepository{
 
             throw new Error('User ID is required');
         }
+        // const bookings = await bookingModel.find({ userId: convertedUserId });
 
-        const bookings = await bookingModel.find({ userId: convertedUserId });
+        const bookings = await bookingModel.find({ userId: convertedUserId }).populate('doctorId');
 
-      
         if (bookings ) {
             console.log('Bookings found:', bookings);
             
             return bookings;
         } 
-    } catch (error:any) {
-        console.error('Error finding bookings:', error.message);
+    } catch (error) {
+        console.error('Error finding bookings:', (error as Error).message);
         throw error;
     }
     }
@@ -102,11 +131,11 @@ class BookingRepository{
     
             const updatedBooking = await bookingModel.findByIdAndUpdate(bookingId, updateData, { new: true });
     
-           return({booking:updateData,success:true})
+           return({booking:updatedBooking,success:true})
     
            
-        } catch (error:any) {
-            console.error('Error updating booking:', error.message);
+        } catch (error) {
+            console.error('Error updating booking:', (error as Error).message);
            
         }
     }
@@ -121,9 +150,6 @@ class BookingRepository{
                 }
             }
 
-            console.log(status,"booking");
-            
-            
             const updated=await bookingModel.findByIdAndUpdate(id, { status: status },{ new: true } )
 
             if(updated){
@@ -131,6 +157,18 @@ class BookingRepository{
             }else{
                 return null
             }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    async findAll(){
+        try {
+            const allBookings=await bookingModel.find()
+            if(!allBookings){
+                return null
+            }
+            return allBookings
         } catch (error) {
             throw error
         }

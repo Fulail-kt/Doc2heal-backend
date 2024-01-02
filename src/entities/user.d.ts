@@ -27,9 +27,13 @@ interface User {
     feedback?: {
 
     }[];
-    report?: {
-
-    }[];
+    bankDetails?:
+    {
+      AcNumber:number,
+      Repeataccount:number,
+      ifsce:string,
+      accountHolder:string
+    }
     role?: 'patient' | 'doctor'|'admin';
     wallet?: {
       balance: number,
@@ -37,6 +41,7 @@ interface User {
         {
           paymentType: string,
           amount: number,
+          date:Date
         }]};
     isBlocked?: boolean;
     isApproved?:boolean,

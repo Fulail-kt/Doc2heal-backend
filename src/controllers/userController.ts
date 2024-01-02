@@ -1,16 +1,36 @@
 import { Request, Response } from "express";
+import multer from "multer"
 import UserUsecase from "../useCases/userUseCase";
 import UserRepository from "../frameworks/repository/user.repository";
 import User from "../entities/user";
+import { ObjectId } from "mongoose";
 import GenerateOtp from "../frameworks/utils/generateOtp";
 import SendMail from "../frameworks/utils/sendMail";
 import OtpRepository from "../frameworks/repository/otp.repository";
 import Otp from "../entities/otp"
-import CloudinaryUpload from "../frameworks/utils/cloudinaryUpload";
-import stripe from 'stripe';
 
+import CloudinaryUpload from "../frameworks/utils/cloudinaryUpload";
+
+
+import stripe from 'stripe';
+import userModel from "../frameworks/models/user.model";
 
 const stripeInstance = new stripe("sk_test_51OLmR8SJmqVejvmLolrT1nzPZYm8AwHYl4nkIX1ekPt53r0rqCppRMq0D78KxcvkhW7VWh2baX73WxWklaNrGGHL00pzsghBVk");
+
+
+// declare global {
+//     namespace Express {
+//         interface Request {
+//             user?: {
+//                 userId: string;
+//                 role: string;
+//             };
+//             file?: FileArray | undefined;
+//         }
+//     }
+// }
+
+
 
 declare global {
     namespace Express {
@@ -116,7 +136,7 @@ class UserController {
                 });
             }
 
-            let user: User = {
+            const user: User = {
                 username,
                 email,
                 password,
@@ -142,6 +162,7 @@ class UserController {
             if (!response?.success) {
                 return res.status(500).json(response)
             }
+
 
             res.status(response?.status).json(response)
 
@@ -187,6 +208,7 @@ class UserController {
 
 
             if (user.success && user.isApproved == false) {
+                console.log(user.message)
                 return res.status(200).json({
                     success: true,
                     message: user.message,
@@ -195,6 +217,7 @@ class UserController {
                 })
             }
             if (!user.success) {
+                console.log(user.message)
                 return res.status(400).json({
                     message: user.message
                 })
@@ -204,12 +227,12 @@ class UserController {
 
             if (user.user?.isVerified == false) {
 
-                let Otp = await this.generateOtp.generateOtp(4);
-                let username = user.user?.username
+                const Otp = await this.generateOtp.generateOtp(4);
+                const username = user.user?.username
 
                 const sendOtp = await this.sendMail.sendMail(username, email, Otp)
 
-                let otpDetails: Otp = {
+                const otpDetails: Otp = {
                     // userId:new mongoose.Types.ObjectId(response.user?._id) as Types.ObjectId,
                     userMail: user.user?.email,
                     otp: Otp,
@@ -251,10 +274,11 @@ class UserController {
 
         try {
 
-            let id = req.params.id
+            const id = req.params.id
+
             const { username, email, password, phone, gender } = req.body;
 
-            let updatedUser: User = {
+            const updatedUser: User = {
                 username,
                 email,
                 phone,
@@ -309,8 +333,8 @@ class UserController {
 
     async getAllusers(req: Request, res: Response) {
         try {
-          
-            let user: string | any = req.query.user;
+
+            const user: string | any = req.query.user;
             const response = await this.userUsercase.findAllUser();
 
             if (!response.success) {
@@ -318,8 +342,8 @@ class UserController {
             }
 
             return res.status(200).json({ success: true, message: response.message, user: response.data });
-        } catch (error: any) {
-            return res.status(500).json({ success: false, message: error.message });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: (error as Error).message });
         }
     }
 
@@ -327,7 +351,7 @@ class UserController {
     async getUser(req: Request, res: Response) {
         try {
 
-            let userId = req.query.id
+            const userId = req.query.id
 
             if (typeof userId === 'string') {
 
@@ -341,8 +365,8 @@ class UserController {
             } else {
 
             }
-        } catch (error: any) {
-            return res.status(500).json({ success: false, message: error.message });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: (error as Error).message });
         }
     }
 
@@ -350,7 +374,7 @@ class UserController {
     async doctorRegister(req: Request, res: Response) {
 
         try {
-            let Id = (req as any)?.user.id
+            const Id = (req as any)?.user.id
 
             const {
                 email,
@@ -388,7 +412,7 @@ class UserController {
                 });
             }
         } catch (error) {
-            console.error(error);
+            console.error((error as Error));
             return res.status(500).json({
                 success: false,
                 message: "Internal server error. Please try again later.",
@@ -399,7 +423,7 @@ class UserController {
 
     async saveDocuments(req: Request, res: Response) {
         try {
-            let Id = (req as any)?.user.id
+            const Id = (req as any)?.user.id
 
             const documents = req.files as FileArray;
 
@@ -411,7 +435,9 @@ class UserController {
                 }));
 
                 docs.push(...documentPaths);
+
                 const submitDocuments = await this.userUsercase.saveDocuments(Id, docs)
+
                 res.status(200).json({ success: true, message: 'Documents submitted successfully', docs });
             } else {
                 res.status(400).json({ success: false, message: 'No documents found in the request' });
@@ -425,11 +451,12 @@ class UserController {
 
 
     async editProfile(req: Request, res: Response) {
+
         try {
             console.log(req.file);
 
             if (req.file) {
-                let Id = (req as any)?.user.id
+                const Id = (req as any)?.user.id
                 let url = ''
                 const img = await this.cloudinaryUpload.upload(
                     req.file.path,
@@ -449,8 +476,8 @@ class UserController {
             }
 
 
-        } catch (error: any) {
-            res.json({ success: false, message: error.message })
+        } catch (error) {
+            res.json({ success: false, message: (error as Error).message })
 
         }
     }
@@ -461,9 +488,16 @@ class UserController {
             if (req.query) {
                 let Id: string | any = req.query.id;
 
+                // console.log("this is form");
+
+                let date:string | any =req.query.selected
+
+                console.log(date,"drsd");
+                
                 if (Id) {
 
-                    const response = await this.userUsercase.getbookings(Id)
+                    const response = await this.userUsercase.getbookings(Id,date)
+                    
                     if (response) {
                         return res.status(200).json({ success: true, bookings: response?.bookings })
                     }
@@ -472,7 +506,7 @@ class UserController {
             }
 
         } catch (error) {
-
+            res.status(500).json({ message: (error as Error) })
         }
     }
 
@@ -495,8 +529,8 @@ class UserController {
             });
 
             res.json({ clientSecret: paymentIntent.client_secret });
-        } catch (error: any) {
-            res.status(500).json({ error: error.message });
+        } catch (error) {
+            res.status(500).json({ error: (error as Error).message });
         }
 
     }
@@ -527,6 +561,7 @@ class UserController {
             if (!Id) {
                 return res.status(401).json({ message: 'unAuthorised' })
             }
+
             const bookings = await this.userUsercase.getAllbookings(Id)
 
             if (bookings?.success) {
@@ -538,6 +573,23 @@ class UserController {
         }
     }
 
+    async cancelBooking(req: Request, res: Response) {
+        try {
+            const { bookingId, status } = req.body
+
+            if (!bookingId || !status) {
+                return res.status(400).json({ message: "some error occured" })
+            }
+
+            const response = await this.userUsercase.cancelBooking(bookingId, status)
+
+            if (response) {
+                return ({ message: "Booking successfully cancelled", success: true })
+            }
+        } catch (error) {
+            return res.status(500).json({ success: true, message: (error as Error).message })
+        }
+    }
 
 }
 

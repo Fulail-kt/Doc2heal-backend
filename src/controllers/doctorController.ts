@@ -1,6 +1,17 @@
 import { Request, Response } from 'express';
 import DoctorUseCase from "../useCases/doctorUseCase";
+import mongoose from 'mongoose';
+import bookingModel from '../frameworks/models/booking.model';
+import userModel from '../frameworks/models/user.model';
+import User from '../entities/user';
 // import UserRepository from "../frameworks/repository/user.repository";
+
+
+
+interface DoctorsResponse {
+    doctors: User[];
+    totalPages: number;
+  }
 
 class DoctorController {
     private doctorUsecase: DoctorUseCase;
@@ -14,93 +25,153 @@ class DoctorController {
     async saveTimeSlot(req: Request, res: Response) {
 
         try {
-            
-            const {date,time}=req.body
+            const { occurrences } = req.body
+            console.log(req.body);
+            const userId = (req as any)?.user.id
 
-        if(date && time ){
+            const response = await this.doctorUsecase.timeSlot(occurrences, userId)
 
-            let value={
-                date,
-                time
+            if (!response.success) {
+                
+              return  res.status(200).json({ message: response.message })
             }
-            
-            let userId = (req as any)?.user.id
+        
+            return res.status(200).json({ message: response.message })
 
-            const response = await this.doctorUsecase.timeSlot(value,userId)
-
-         return  res.status(200).json({message:response.message})
-            
-        }else{
-
-         return  res.status(400).json({message:'invalid request'})
-        }
         } catch (error) {
-            return  res.status(500).json({message:(error as Error).message})
+            return res.status(500).json({ message: (error as Error).message })
 
         }
-   
+
     }
 
 
-  async  Bookings(req:Request,res:Response){
+    async Bookings(req: Request, res: Response) {
 
-    try {
+        try {
 
-        let Id = (req as any)?.user.id
-        let condition:any;
-        
-
-        const response=await this.doctorUsecase.Bookings(Id)
+            const Id = (req as any)?.user.id
+            
+            const response = await this.doctorUsecase.Bookings(Id)
 
 
-        if(!response.success){
-            return res.status(400).json({message:response.message,success:false})
+            if (!response.success) {
+                return res.status(400).json({ message: response.message, success: false })
+            }
+
+            return res.status(200).json({ message: response.message, success: true, booking: response?.upcomming })
+        } catch (error) {
+            return res.status(400).json({ message: (error as Error).message })
+
+
         }
-        
-        return res.status(200).json({message:response.message,success:true,booking:response?.upcomming})
-    } catch (error) {
-        return res.status(400).json({message:(error as Error).message})
-       
-
     }
-  }
 
-  async BookingStatusUpdate(req:Request,res:Response){
-    try {
+    async BookingStatusUpdate(req: Request, res: Response) {
+        try {
 
-        const {bookingId,status}=req.body
+            const { bookingId, status } = req.body
 
-        if(!bookingId || !status){
-            return res.status(400).json({message:"some error occured"})
+            if (!bookingId || !status) {
+                return res.status(400).json({ message: "some error occured" })
+            }
+
+            const response = await this.doctorUsecase.BookingStatus(bookingId, status)
+
+            if (response) {
+                return ({ message: "Booking successfully updated", success: true })
+            }
+
+        } catch (error) {
+            res.status(500).json({ message: "some error occured while updating status", success: false })
         }
+    }
 
-        const response= await this.doctorUsecase.BookingStatus(bookingId,status)
 
-        if(response){
-            return ({message:"Booking successfully cancelled",success:true})
+    async getDoctor(req: Request, res: Response) {
+        try {
+            const doctorId: any = req.query.id
+            const doctor = await this.doctorUsecase.getDoctor(doctorId)
+
+            if (!doctor.success) {
+                return res.status(400).json({ success: false, message: doctor.message });
+            }
+            return res.status(200).json({ success: true, doctor })
+
+        } catch (error) {
+            res.status(500).json({ message: "some error occured while get Doctor", success: false })
         }
-        
-    } catch (error) {
-        res.status(500).json({message:"some error occured while cancelling",success:false})
     }
-  }
 
+    async updateBankingDetails(req: Request, res: Response) {
+        try {
 
-  async getDoctor(req:Request,res:Response){
-    try {
-        let doctorId:any = req.query.id
+            const { acNumber, repeatAcNumber, ifscCode, accountHolder } = req.body
+           const docId=req.params.id
 
-        const doctor=await this.doctorUsecase.getDoctor(doctorId)
-               
-        if (!doctor.success) {
-            return res.status(400).json({ success: false, message: doctor.message });
-          }
+            if (repeatAcNumber != acNumber) {
+                return res.status(400).json({ message: 'Account number is not matching' })
+            }
 
-          return res.status(200).json({success:true,doctor})
-    } catch (error) {
-        
+            const data = {
+                acNumber, repeatAcNumber, ifscCode, accountHolder
+            }
+            const response = await this.doctorUsecase.updateBanking(docId, data)
+
+            if (!response.success) {
+                res.status(400).json({ message: response?.message })
+            }
+
+            res.status(200).json({ message: response?.message, bankDetails: response.updatedBanking })
+        } catch (error) {
+            res.status(500).json({ message: "some error occured" })
+        }
     }
-  }
-}
+
+   async getBookings(req:Request,res:Response){
+        try {
+            
+            const response = await this.doctorUsecase.getAllbookings()
+            if (!response.success) {
+                return res.status(400).json({ message: response.message, success: false })
+            }
+
+            return res.status(200).json({ message: response.message, success: true, booking: response?.allBookings })
+        } catch (error) {
+            return res.status(400).json({ message: (error as Error).message })
+        }
+    }
+
+    async getAlldoctors(req: Request, res: Response) {
+        try {
+          const { page = 1 } = req.query as { page?: number };
+      
+          const totalDoctors = await userModel.countDocuments({
+            role: 'doctor',
+            isApproved: true,
+          });
+      
+          const pageSize: number = 6;
+          const totalPages = Math.ceil(totalDoctors / pageSize);
+      
+          const doctors = await userModel
+            .find()
+            .skip((page - 1) * pageSize)
+            .limit(Number(pageSize));
+      
+          res.status(200).json({
+            success: true,
+            message: 'retrieved success',
+            doctors,
+            totalPages,
+          });
+        } catch (error) {
+          return res.status(400).json({ message: (error as Error).message });
+        }
+      }
+      
+
+}   
+
 
 export default DoctorController;

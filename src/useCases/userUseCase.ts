@@ -69,7 +69,9 @@ class UserUsecase {
 
                 const userId = response.user?._id?.toString() || '';
                 const role = response.user?.role || ''
-                const token = this.jwtToken.createJWT(userId, role);
+                const isApproved = response?.user?.isApproved || false
+
+                const token = this.jwtToken.createJWT(userId, role, isApproved);
                 return {
                     status: 200,
                     success: true,
@@ -122,7 +124,8 @@ class UserUsecase {
 
                     const userId = storedUser?._id?.toString() || '';
                     const role = storedUser?.role || ''
-                    const token = this.jwtToken.createJWT(userId, role);
+                    const isApproved = storedUser?.isApproved || false
+                    const token = this.jwtToken.createJWT(userId, role, isApproved);
 
                     // Password is correct then // checking is blocked or not
 
@@ -219,8 +222,8 @@ class UserUsecase {
                     message: response.message,
                 };
             }
-        } catch (error: any) {
-            console.error(error.message);
+        } catch (error) {
+            console.error((error as Error).message);
             return {
                 status: 500,
                 success: false,
@@ -292,13 +295,13 @@ class UserUsecase {
                 data: response.data,
                 message: 'Retrived all doctors'
             }
-        } catch (error: any) {
+        } catch (error) {
 
-            console.log(error.message);
+            console.log((error as Error).message);
 
             return {
                 success: false,
-                message: '(an error occured from database)' + error.message
+                message: '(an error occured from database)' + (error as Error).message
             }
 
 
@@ -322,10 +325,10 @@ class UserUsecase {
                 user,
                 message: 'Retrived the user'
             }
-        } catch (error: any) {
+        } catch (error) {
             return {
                 success: false,
-                message: '(an error occured from database)' + error.message
+                message: '(an error occured from database)' + (error as Error).message
             }
         }
     }
@@ -401,11 +404,11 @@ class UserUsecase {
 
     // Bookings=======
 
-    async getbookings(Id: string) {
+    async getbookings(Id: string,date:string) {
         try {
 
-            const bookings = await this.bookingRepository.findByDoctorId(Id)
-
+            const bookings = await this.bookingRepository.findByDoctorIdfilter(Id,date)
+            
             if (bookings) {
                 return ({ success: true, bookings })
             } else {
@@ -445,27 +448,12 @@ class UserUsecase {
                 const res = await this.bookingRepository.findByIdAndUpdate(userId, bookingData)
                 if (res?.success) {
 
-                    const Amount = response.fee;
-                    const percentageToSubtract = 20;
-                    const decimalEquivalent = percentageToSubtract / 100;
-                    const result = Amount - Amount * decimalEquivalent;
+                    const createConversation = await this.conversationRepository.createConversation(userId, response.doctorId.toString())
 
-                    const updateData = { bookingfee: result, type: "credit" }
-
-                    const updateAmount = await this.userRepository.findByIdAndUpdateWallet(response.doctorId, updateData)
-
-
-                    const createConversation= await this.conversationRepository.createConversation(userId,response.doctorId.toString())
-
-
-                    if (!updateAmount) {
-                        return { message: 'Error updating user wallet', success: false };
-                    }
-
-                    if(!createConversation){
+                    if (!createConversation) {
                         return { message: 'Error creating conversation', success: false };
                     }
-                    
+
                     return ({ success: true, booking: res.booking })
                 }
 
@@ -473,13 +461,38 @@ class UserUsecase {
                 return ({ success: false, message: "booking Not found" })
             }
 
-        } catch (error: any) {
+        } catch (error) {
 
-            return ({ success: false, status: 500, message: error.message, })
+            return ({ success: false, status: 500, message: (error as Error).message, })
 
         }
     }
 
+
+    async cancelBooking(id: string, status: string) {
+        try {
+            const booking = await this.bookingRepository.findById(id);
+
+            if (!booking) {
+                return { message: 'Booking not found', success: false };
+            }
+
+            const cancelledBooking = await this.bookingRepository.findByIdAndStatusUpdate(id, status);
+
+            const updateData = { id: booking._id, bookingfee: booking.fee, type: "credit" }
+            const updateWallet = await this.userRepository.findByIdAndUpdateWallet(booking.userId, updateData)
+
+            if (!cancelledBooking || !updateWallet) {
+                return ({ success: false })
+            }
+
+
+            return ({ success: true, cancelledBooking })
+
+        } catch (error) {
+            throw error
+        }
+    }
 
 
     // Conversations---- && Message-----
@@ -503,34 +516,34 @@ class UserUsecase {
 
     }
 
-    async sendMessage(conversationId:string, senderId:string, message:string){
+    async sendMessage(conversationId: string, senderId: string, message: string) {
         try {
-            const response=await this.conversationRepository.sendMessage(conversationId, senderId, message)
-           
+            const response = await this.conversationRepository.sendMessage(conversationId, senderId, message)
+
             if (response) {
-                return ({ success: true, messsage:'Send message successfully' })
+                return ({ success: true, messsage: 'Send message successfully' })
             } else {
                 return ({ success: false })
             }
 
         } catch (error) {
-            
+
             throw error
         }
     }
 
-    async getMessages(conversationId:string){
+    async getMessages(conversationId: string) {
         try {
             const messages = await this.conversationRepository.getMessages(conversationId)
-    
-           if(messages){
-            return ({messages,success:true})
-           }else{
-            return ({success:false})
-           }
-    
+
+            if (messages) {
+                return ({ messages, success: true })
+            } else {
+                return ({ success: false })
+            }
+
         } catch (error) {
-           throw error
+            throw error
         }
     }
 

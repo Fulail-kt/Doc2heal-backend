@@ -3,13 +3,13 @@ import JWT from 'jsonwebtoken'
 require('dotenv').config();
 class JWTtoken implements jwt {
 
-    createJWT(userId: string, role: string): string {
+    createJWT(userId: string, role: string,isApproved:boolean): string {
 
         const jwtKey = process.env.JWT_SECRET_KEY;
 
         if (jwtKey) {
 
-            const token: string = JWT.sign({ id: userId, role: role }, jwtKey, { expiresIn: '24h' })
+            const token: string = JWT.sign({ id: userId, role: role,isApproved }, jwtKey, { expiresIn: '24h' })
 
             return token
         }

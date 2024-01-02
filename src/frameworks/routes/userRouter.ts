@@ -6,6 +6,8 @@ import UserRepository from '../repository/user.repository';
 import ConversationRepository from '../repository/conversation.repository';
 import { authenticateToken, isBlocked } from '../middlewares/auth.middleware';
 import { upload } from '../config/multer';
+import bookingModel from '../models/booking.model';
+import mongoose from 'mongoose';
 
 const routes = express.Router();
 
@@ -31,32 +33,18 @@ routes.post('/payment', authenticateToken, (req, res) => userController.bookingP
 
 // BOOKING ROUTES
 routes.get('/getbookings', (req, res) => userController.getBookings(req, res))
+
+// ALL BOOKING DATA WITH USER ID
 routes.get('/getAllbookings', authenticateToken, async (req, res) => { userController.getAllBookings(req, res) })
+
 routes.post('/savebooking', authenticateToken, async (req, res) => { userController.saveBooking(req, res) })
+routes.post('/cancelBooking',authenticateToken, async (req, res) => { userController.cancelBooking(req, res) })
 
 // CONVERSATIONS ROUTES
 routes.post('/conversation', async (req, res) => { conversationController.createConversation(req,res)})
 routes.get('/conversations/:userId',authenticateToken,isBlocked, async (req, res) => {conversationController.getConversation(req,res)});
 routes.post('/messages', async (req, res) => {conversationController.sendMessage(req,res)})
 routes.get('/messages/:conversationId', async (req, res) => {conversationController.getMessages(req,res)});
-
-
-// routes.get('/users/:userId', async (req, res) => {
-//     try {
-//         const userId = req.params.userId;
-//         const users = await userModel.find({ _id: { $ne: userId } });
-//         const usersData = await Promise.all(users.map(async (user) => {
-//             return { user: { email: user.email, username: user.username, receiverId: user._id } }
-//         }));
-
-//         console.log(usersData);
-//         res.status(200).json(usersData);  // Send the array directly
-
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).json({ error: 'Internal Server Error' });
-//     }
-// });
 
 
 

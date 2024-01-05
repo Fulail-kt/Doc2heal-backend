@@ -32,7 +32,6 @@ class SendMail {
                         message: 'Failed to send verification code',
                     });
                 } else {
-                    console.log('Verification code sent successfully');
                     resolve({
                         status:200,
                         success: true,

@@ -23,10 +23,9 @@ class DoctorController {
     }
 
     async saveTimeSlot(req: Request, res: Response) {
-
         try {
+
             const { occurrences } = req.body
-            console.log(req.body);
             const userId = (req as any)?.user.id
 
             const response = await this.doctorUsecase.timeSlot(occurrences, userId)
@@ -105,7 +104,6 @@ class DoctorController {
 
     async updateBankingDetails(req: Request, res: Response) {
         try {
-
             const { acNumber, repeatAcNumber, ifscCode, accountHolder } = req.body
            const docId=req.params.id
 
@@ -142,6 +140,18 @@ class DoctorController {
         }
     }
 
+    async prescription(req:Request,res:Response){
+        try {
+            const {prescription,selected}=req.body
+
+            console.log(req.body);
+            
+            const response=await this.doctorUsecase.prescription(selected,prescription)
+        } catch (error) {
+            return res.status(400).json({ message: (error as Error).message })
+        }
+    }
+
     async getAlldoctors(req: Request, res: Response) {
         try {
           const { page = 1 } = req.query as { page?: number };
@@ -170,7 +180,23 @@ class DoctorController {
         }
       }
       
+      async paymentRequest(req:Request,res:Response){
+        try {
+            const doctorId:any=req.query.id
 
+            if(!doctorId){
+               return res.status(200).json({message:"Your Id is null"})
+            }
+            const response=await this.doctorUsecase.paymentRequest(doctorId)
+
+            if(!response.success){
+                return res.status(200).json({success:false,message:response.message})
+              }
+            return res.status(200).json({success:true,message:response.message})
+        } catch (error) {
+            return res.status(400).json({ message: (error as Error).message });
+        }
+      }
 }   
 
 

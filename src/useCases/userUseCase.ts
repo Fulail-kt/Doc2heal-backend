@@ -10,6 +10,7 @@ import userModel from "../frameworks/models/user.model"
 import bookingModel from "../frameworks/models/booking.model"
 import BookingRepository from "../frameworks/repository/booking.repository"
 import ConversationRepository from "../frameworks/repository/conversation.repository"
+import { Booking } from "../entities/booking"
 
 class UserUsecase {
     private userRepository: UserRepository
@@ -121,7 +122,6 @@ class UserUsecase {
                         };
                     }
 
-
                     const userId = storedUser?._id?.toString() || '';
                     const role = storedUser?.role || ''
                     const isApproved = storedUser?.isApproved || false
@@ -158,8 +158,7 @@ class UserUsecase {
                     if (storedUser?.role == "doctor") {
                         //checking approval status of Doctor
                         if (!storedUser?.isApproved) {
-                            console.log(token);
-
+                          
                             return { success: true, isApproved: false, message: 'Account is not approved by admin', storedUser, token }
                         }
 
@@ -238,14 +237,9 @@ class UserUsecase {
 
     async verifyOtp(email: string, code: number, id: string): Promise<{ success: boolean, message: string }> {
         try {
-
-            // Check if the provided OTP matches the stored OTP for the user
-            const isOtpValid = await this.otpRepository.findOtpByEmailAndCode(email, code);
-
+            const isOtpValid = await this.otpRepository.findOtpByEmailAndCode(email,code);
             if (isOtpValid.success) {
-                // Log the ID before updating
 
-                // Update the user with timeTolive set to 0
                 let ID = new mongoose.Types.ObjectId(id)
 
                 const response = await this.userRepository.otpSuccess(email)
@@ -437,7 +431,7 @@ class UserUsecase {
 
 
 
-    async saveBooking(userId: string, bookingData: { username: string, age: number, note: string, bkId: string }) {
+    async saveBooking(userId: string, bookingData: { username: string, age: number, note: string, bkId: string,prescription?:string,status:string },useWallet:boolean) {
         try {
             let bookingId = new mongoose.Types.ObjectId(bookingData.bkId)
 
@@ -454,7 +448,26 @@ class UserUsecase {
                         return { message: 'Error creating conversation', success: false };
                     }
 
-                    return ({ success: true, booking: res.booking })
+                    console.log(useWallet,"");
+                    
+                    if(useWallet){
+                        const updateUser= {
+                            $inc: { 'wallet.balance': -response.fee },
+                            $push: {
+                                'wallet.transactions': {
+                                    _id:response._id,
+                                    paymentType: "debit",
+                                    amount: response.fee,
+                                },
+                            },
+                        }
+                        const user=await this.userRepository.findByIdAndUpdate(userId,updateUser)
+
+                        return ({ success: true, booking: res.booking,payment:"wallet" })
+                        
+                    }
+
+                    return ({ success: true, booking: res.booking,payment:"card" })
                 }
 
             } else {
@@ -488,6 +501,26 @@ class UserUsecase {
 
 
             return ({ success: true, cancelledBooking })
+
+        } catch (error) {
+            throw error
+        }
+    }
+
+
+    async paymentHistory(id:string){
+        try {
+            
+            const response=await this.bookingRepository.findByUserId(id)
+
+            if(!response){
+                return ({success:false})
+            }
+            const totalAmount = response.reduce((acc, booking) => acc + booking.fee, 0);
+
+            const payment = response.filter(item => item.status === "booked" || item.status === "completed").sort((a:any, b:any) =>b-a);
+
+            return ({success:true,payment,totalAmount})
 
         } catch (error) {
             throw error

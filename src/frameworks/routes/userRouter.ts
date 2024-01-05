@@ -22,6 +22,7 @@ routes.post('/register', (req, res) => userController.register(req, res));
 routes.post('/login', (req, res) => userController.login(req, res))
 routes.put('/updateUser/:id', authenticateToken, (req, res) => userController.updateUser(req, res))
 routes.post('/verify-otp', (req, res) => userController.verifyOtp(req, res))
+routes.post('/resendOtp', (req, res) => userController.resendOtp(req, res))
 
 routes.get('/getAllusers', (req, res) => userController.getAllusers(req, res))
 routes.get('/getuser',authenticateToken,isBlocked, (req, res) => userController.getUser(req, res))
@@ -36,15 +37,16 @@ routes.get('/getbookings', (req, res) => userController.getBookings(req, res))
 
 // ALL BOOKING DATA WITH USER ID
 routes.get('/getAllbookings', authenticateToken, async (req, res) => { userController.getAllBookings(req, res) })
-
 routes.post('/savebooking', authenticateToken, async (req, res) => { userController.saveBooking(req, res) })
 routes.post('/cancelBooking',authenticateToken, async (req, res) => { userController.cancelBooking(req, res) })
+routes.get('/paymenthistory',authenticateToken, async (req, res) => { userController.paymentHistory(req, res) })
 
 // CONVERSATIONS ROUTES
 routes.post('/conversation', async (req, res) => { conversationController.createConversation(req,res)})
 routes.get('/conversations/:userId',authenticateToken,isBlocked, async (req, res) => {conversationController.getConversation(req,res)});
 routes.post('/messages', async (req, res) => {conversationController.sendMessage(req,res)})
 routes.get('/messages/:conversationId', async (req, res) => {conversationController.getMessages(req,res)});
+
 
 
 

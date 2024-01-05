@@ -12,8 +12,7 @@ class CloudinaryUpload {
         if (isPDF) {
             // If it's a PDF file, set resource_type to 'raw'
             uploadOptions.resource_type = 'raw';
-            console.log("**************************************************************");
-            
+      
         }
 
         const result = await cloudinary.uploader.upload(filePath, uploadOptions);

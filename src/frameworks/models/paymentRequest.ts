@@ -13,12 +13,13 @@ const paymentRequest = new mongoose.Schema<paymentRequest>({
     ifsce:String,
     accountHolder:String
   },
+  walletAmount:Number,
   status:{
     type:String,
     default:"requested"
   }
 });
 
-const paymentModal = mongoose.model<paymentRequest>('paymentRequest', paymentRequest);
+const paymentModal = mongoose.model<paymentRequest>('payment', paymentRequest);
 
 export default paymentModal

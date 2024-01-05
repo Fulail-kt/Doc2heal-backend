@@ -175,8 +175,6 @@ class UserRepository {
 
             const options = { new: true };
 
-            console.log(updateData,"for,");
-            
             const updatedUser = await userModel.findByIdAndUpdate(
                 id,
                 {
@@ -272,8 +270,6 @@ class UserRepository {
                Completed:completedCount,Booked:bookedCount,Cancelled:cancelledCount
               }
               
-            console.log(result);
-
             if (result) {
                 return ({result,booking})
             } else {

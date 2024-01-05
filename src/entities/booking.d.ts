@@ -14,4 +14,5 @@ interface Booking {
   userAge: number;
   userId: mongoose.Types.ObjectId;
   userName: string;
+  prescription?:string
 }

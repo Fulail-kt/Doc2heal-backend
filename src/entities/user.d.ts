@@ -18,6 +18,7 @@ interface User {
     formStatus?:string
     specialization?: string;
     fee?: number;
+    patients?:[]
     timeSchedules?: string[];
     hospital?: string;
     experience?: string;

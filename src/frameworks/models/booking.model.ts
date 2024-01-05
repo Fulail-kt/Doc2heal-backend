@@ -35,6 +35,7 @@ const bookingSchema = new mongoose.Schema<Booking>({
   userName: {
     type: String,
   },
+  prescription:String
 });
 
 export default mongoose.model<Booking>("Booking", bookingSchema);

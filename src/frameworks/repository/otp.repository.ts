@@ -36,7 +36,6 @@ class OtpRepository {
 
   async findOtpByEmailAndCode(email: string, code: number): Promise<{ success: boolean,message?:string }> {
     let otp = code;
-    // Check if the OTP with the provided email and code exists in the database
     let userMail =email
 
     const existingOtp = await otpModel.findOne({ userMail, otp });
@@ -55,7 +54,6 @@ class OtpRepository {
 
     return { success: false,message:"invalid otp" };
 }
-
 
   
 }

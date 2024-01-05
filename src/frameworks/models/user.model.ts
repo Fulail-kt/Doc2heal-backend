@@ -41,6 +41,7 @@ const userSchema = new mongoose.Schema<User>({
   }],
   hospital: String,
   experience: String,
+  patients:[],
   booking: [
     {
   

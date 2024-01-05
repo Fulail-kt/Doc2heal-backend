@@ -11,6 +11,7 @@ interface BankDetails {
     doctorId: ObjectId;
     bankDetails: BankDetails[];
     status: string;
+    walletAmount:number
   }
   
   export default PaymentRequest;

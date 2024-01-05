@@ -116,10 +116,7 @@ class DoctorRepository{
           });
       
           if (overlappingSchedules.length > 0) {
-            // Handle the case where overlapping schedules exist
-            // throw new Error('Overlapping schedules exist within one hour of the new start time.');
-            console.log("heloo");
-            
+      
             return null;
           }
       

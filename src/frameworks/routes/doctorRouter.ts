@@ -6,12 +6,14 @@ import { authenticateToken } from '../middlewares/auth.middleware';
 import BookingRepository from '../repository/booking.repository';
 import mongoose from 'mongoose';
 import bookingModel from '../models/booking.model';
+import PaymentRepository from '../repository/payment.repository';
 
 
 const routes = express.Router();
 const bookingRespository=new BookingRepository
 const userRepository = new UserRepository();
-const doctorUseCase =new DoctorUseCase(userRepository,bookingRespository)
+const paymentRepository = new PaymentRepository();
+const doctorUseCase =new DoctorUseCase(userRepository,bookingRespository,paymentRepository)
 const doctorController=new DoctorController(doctorUseCase)
 
 // ALL DOCTORS
@@ -29,6 +31,10 @@ routes.post('/updateBookingStatus',authenticateToken, (req,res)=> doctorControll
 // ADD OR UPDATE BANK DETAILS
 routes.post('/bankDetailsUpdate/:id',authenticateToken, (req,res)=> doctorController.updateBankingDetails(req,res))
 // DOCTOR TOTAL EARNINGS
+routes.post('/requestPayment',authenticateToken, (req,res)=> doctorController.paymentRequest(req,res))
+
+routes.post('/prescription',authenticateToken, (req,res)=> doctorController.prescription(req,res))
+
 routes.get('/totalEarnings/:id', async (req, res) => {
     try {
       const doctorId= req.params.id
@@ -108,8 +114,6 @@ routes.get('/totalEarnings/:id', async (req, res) => {
       }
 
       const totalUniqueUserCount = result.reduce((total, item) => total + item.uniqueUserCount, 0);
-  
-      console.log(result,totalUniqueUserCount);
   
       res.status(200).json({data:result,patient:totalUniqueUserCount,booking});
     } catch (error) {

@@ -92,8 +92,6 @@ class UserController {
             password = password.trim();
             phone = phone.trim();
 
-            console.log(req.body);
-
             if (!username || !email || !password || !phone) {
                 return res.status(400).json({
                     success: false,
@@ -208,7 +206,7 @@ class UserController {
 
 
             if (user.success && user.isApproved == false) {
-                console.log(user.message)
+              
                 return res.status(200).json({
                     success: true,
                     message: user.message,
@@ -217,7 +215,6 @@ class UserController {
                 })
             }
             if (!user.success) {
-                console.log(user.message)
                 return res.status(400).json({
                     message: user.message
                 })
@@ -247,7 +244,8 @@ class UserController {
                     message: "Please verify your account",
                     // user:user?.user,
                     isVerified: false,
-                    email: user?.user?.email
+                    email: user?.user?.email,
+                    username:user?.user?.username
                 });
 
             }
@@ -275,9 +273,10 @@ class UserController {
         try {
 
             const id = req.params.id
-
             const { username, email, password, phone, gender } = req.body;
 
+            console.log(username,"dddd");
+            
             const updatedUser: User = {
                 username,
                 email,
@@ -312,11 +311,13 @@ class UserController {
     async verifyOtp(req: Request, res: Response) {
         try {
             let { code, email, id } = req.body
-
             code = parseInt(code)
-
+            if(!code||!email){
+                return res.status(200).json({ success: false, message: 'Invalid Otp or Email, please try again' })
+            }
+            
             const otp = await this.userUsercase.verifyOtp(email, code, id)
-
+           
             if (!otp.success) {
                 return res.json({ success: false, message: 'an error occured try again' })
             }
@@ -326,6 +327,40 @@ class UserController {
         } catch (error) {
 
             return res.json({ success: false, message: (error as Error).message })
+        }
+    }
+
+    async resendOtp(req:Request,res:Response){
+        try {
+            const Otp = await this.generateOtp.generateOtp(4);
+            
+           const {email,username}=req.body
+
+           console.log(req.body);
+           
+            const sendOtp = await this.sendMail.sendMail(username, email, Otp)
+
+            const otpDetails: Otp = {
+                // userId:new mongoose.Types.ObjectId(response.user?._id) as Types.ObjectId,
+                userMail: email,
+                otp: Otp,
+                expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+                createdAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+            }
+            const saveOtp = await this.otpRepository.SaveOtp(otpDetails)
+
+
+            return res.status(200).json({
+                success: true,
+                message: "OTP send successfully",
+                // user:user?.user,
+                isVerified: false,
+                email: email
+            });
+
+        
+        } catch (error) {
+            
         }
     }
 
@@ -453,7 +488,7 @@ class UserController {
     async editProfile(req: Request, res: Response) {
 
         try {
-            console.log(req.file);
+   
 
             if (req.file) {
                 const Id = (req as any)?.user.id
@@ -488,11 +523,8 @@ class UserController {
             if (req.query) {
                 let Id: string | any = req.query.id;
 
-                // console.log("this is form");
-
                 let date:string | any =req.query.selected
 
-                console.log(date,"drsd");
                 
                 if (Id) {
 
@@ -539,13 +571,18 @@ class UserController {
 
     async saveBooking(req: Request, res: Response) {
         try {
-            let Id = (req as any)?.user.id
-            let bookingId = req.body.selectedBookingId
-            let bookingData = req.body.bookingData
+            const Id = (req as any)?.user.id
+            const bookingId = req.body.selectedBookingId
+            const bookingData = req.body.bookingData
+            const useWallet = req.body.useWallet
             bookingData.bkId = bookingId;
-            let response = await this.userUsercase.saveBooking(Id, bookingData)
-
+            bookingData.status="booked"
+            const response = await this.userUsercase.saveBooking(Id, bookingData,useWallet)
             if (response?.success) {
+
+                if(response.payment=="wallet"){
+                    return res.status(200).json({ success: true, message: 'Appointment Scheduled', booking: response.booking,wallet:true })
+                }
                 return res.status(200).json({ success: true, message: 'Appointment Scheduled', booking: response.booking })
             }
 
@@ -576,18 +613,29 @@ class UserController {
     async cancelBooking(req: Request, res: Response) {
         try {
             const { bookingId, status } = req.body
-
             if (!bookingId || !status) {
                 return res.status(400).json({ message: "some error occured" })
             }
-
             const response = await this.userUsercase.cancelBooking(bookingId, status)
-
             if (response) {
                 return ({ message: "Booking successfully cancelled", success: true })
             }
         } catch (error) {
             return res.status(500).json({ success: true, message: (error as Error).message })
+        }
+    }
+
+
+    async paymentHistory(req:Request,res:Response){
+        try {
+            const id:any=req.query.id
+            const response=await this.userUsercase.paymentHistory(id)
+            if (!response.success) {
+                return ({ message: "Error occured while getting Payment", success: false })
+            }
+            return  res.status(200).json({ message: "successfully retrived Payment", success: true,payment:response.payment,total:response.totalAmount })
+        } catch (error) {
+            return res.status(500).json({ success: true, message: (error as Error).message })      
         }
     }
 

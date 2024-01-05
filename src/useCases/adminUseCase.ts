@@ -1,3 +1,4 @@
+import PaymentRepository from "../frameworks/repository/payment.repository";
 import UserRepository from "../frameworks/repository/user.repository"
 
 
@@ -5,8 +6,10 @@ class adminUseCase {
 
 
     private userRepository: UserRepository
-    constructor(userRepository: UserRepository) {
+    private paymentRepository: PaymentRepository
+    constructor(userRepository: UserRepository,paymentRepository:PaymentRepository) {
         this.userRepository = userRepository
+        this.paymentRepository= paymentRepository
 
     }
 
@@ -126,7 +129,36 @@ class adminUseCase {
         }
     }
 
+    async paymentRequests(status:string){
+        try {
+            const response=await this.paymentRepository.find(status)
 
+            if(!response){
+                return ({success:false,message:"error occured while getting payment requests"})
+            }
+            return ({success:true,message:"Payment request retrived",payment:response})
+            
+        } catch (error) {
+            throw error
+        }
+    }
+    
+    async updatePayment(id:string,data:string){
+        try {
+            const updateData={
+                status:data
+            }
+            const response=await this.paymentRepository.findByIdAndUpdate(id,updateData)
+
+            if(!response){
+                return ({success:false,message:"error occured while updating payment requests"})
+            }
+            return ({success:true,message:"Payment request updated",payment:response})
+            
+        } catch (error) {
+            throw error
+        }
+    }
 
 
 

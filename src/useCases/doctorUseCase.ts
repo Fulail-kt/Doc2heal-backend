@@ -3,6 +3,7 @@ import DoctorRepository from "../frameworks/repository/doctor.repository"
 import mongoose, { ObjectId } from "mongoose"
 import BookingRepository from "../frameworks/repository/booking.repository"
 import userModel from "../frameworks/models/user.model"
+import PaymentRepository from "../frameworks/repository/payment.repository"
 
 
 class DoctorUseCase {
@@ -13,11 +14,14 @@ class DoctorUseCase {
 
     private bookingRepository: BookingRepository
 
+    private paymentRepository: PaymentRepository
 
-    constructor(userRepository: UserRepository, bookingRepository: BookingRepository) {
+
+    constructor(userRepository: UserRepository, bookingRepository: BookingRepository, paymentRepository: PaymentRepository) {
 
         this.userRepository = userRepository
         this.bookingRepository = bookingRepository
+        this.paymentRepository = paymentRepository
         this.doctorRepository = new DoctorRepository()
 
     }
@@ -28,10 +32,10 @@ class DoctorUseCase {
         try {
 
             const response = await this.doctorRepository.findByIdAndUpdateTime(occurrences, id);
-            if(!response){
-                return ({ success:false, message: "Failed Creating Time Schedules may any of the time already existed" })
+            if (!response) {
+                return ({ success: false, message: "Failed Creating Time Schedules may any of the time already existed" })
             }
-            return ({success:true, message: "Time Schedule created succcessfully" })
+            return ({ success: true, message: "Time Schedule created succcessfully" })
 
         } catch (error) {
 
@@ -83,7 +87,7 @@ class DoctorUseCase {
                     return { message: 'User not found', success: false };
                 }
 
-                const updateData = { bookingfee: booking.fee, type: "credit",id:booking._id }
+                const updateData = { bookingfee: booking.fee, type: "credit", id: booking._id }
 
                 const updatedUser = await this.userRepository.findByIdAndUpdateWallet(user._id, updateData);
 
@@ -94,22 +98,26 @@ class DoctorUseCase {
             }
 
             if (status == "completed") {
-                
+
                 const Amount = booking.fee;
                 const percentageToSubtract = 20;
                 const decimalEquivalent = percentageToSubtract / 100;
                 const result = Amount - Amount * decimalEquivalent;
 
-                const updateData = { bookingfee: result, type: "credit",id:booking._id }
-
-            
-                
+                const updateData = { bookingfee: result, type: "credit", id: booking._id }
 
                 const updateAmount = await this.userRepository.findByIdAndUpdateWallet(booking.doctorId, updateData)
 
                 if (!updateAmount) {
                     return { message: 'Error updating doctor wallet', success: false };
                 }
+
+                const updateUser = {
+                    $addToSet: { patients: booking.userId }
+                };
+
+                const updatedDoctor = await this.userRepository.findByIdAndUpdate(booking.doctorId, updateUser);
+
             }
 
             return { message: 'Booking status updated successfully', success: true };
@@ -148,14 +156,14 @@ class DoctorUseCase {
             const updatedUser = {
                 bankDetails: {
                     AcNumber: data.acNumber,
-                    Repeataccount:data.repeatAcNumber,
-                    ifsce:data.ifscCode,
-                    accountHolder:data.accountHolder
+                    Repeataccount: data.repeatAcNumber,
+                    ifsce: data.ifscCode,
+                    accountHolder: data.accountHolder
                 }
             };
-    
+
             const updateBanking = await this.userRepository.findByIdAndUpdate(docId, updatedUser);
-    
+
             if (updateBanking) {
                 return {
                     success: true,
@@ -173,7 +181,25 @@ class DoctorUseCase {
         }
     }
 
-    async getAllbookings(){
+    async prescription(id: string, prescription: string) {
+        try {
+            const res = await this.bookingRepository.findById(id)
+
+            console.log(res,"aoso");
+            
+            const data = {
+                bkId: id,
+                prescription,
+                status:res?.status
+            }
+            const userId = res?.userId;
+            const response = await this.bookingRepository.findByIdAndUpdate(userId, data);
+        } catch (error) {
+
+        }
+    }
+
+    async getAllbookings() {
         try {
             const allBookings = await this.bookingRepository.findAll()
 
@@ -194,15 +220,37 @@ class DoctorUseCase {
         }
     }
 
-    async getAlldoctors(){
+    async getAlldoctors() {
         try {
-            const allDoctors= await this.userRepository.findAllDoctor()
+            const allDoctors = await this.userRepository.findAllDoctor()
 
-            if(allDoctors){
-                return({success:true,doctors:allDoctors})
-            }else{
-                return ({success:false})
+            if (allDoctors) {
+                return ({ success: true, doctors: allDoctors })
+            } else {
+                return ({ success: false })
             }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    async paymentRequest(doctorId: string) {
+        try {
+            const doctor = await this.doctorRepository.findById(doctorId)
+
+            if (!doctor) {
+                return ({ success: false, message: 'doctor not found' })
+            }
+
+            const bankDetails = { bankdetails: doctor?.bankDetails, wallet: doctor?.wallet?.balance }
+
+            const request = await this.paymentRepository.create(doctorId, bankDetails)
+
+            if (!request) {
+                return ({ success: false, message: 'request failed' })
+            }
+
+            return ({ success: true, message: "request successfully submitted" })
         } catch (error) {
             throw error
         }

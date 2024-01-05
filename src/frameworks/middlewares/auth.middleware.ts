@@ -23,11 +23,9 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
         const token = authToken
 
-
         const jwtSecret: string = process.env.JWT_SECRET_KEY!;
 
         const decoded = jwt.verify(token, jwtSecret) as User;
-
 
         (req as any).user = decoded;
 
@@ -36,8 +34,6 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         if (!role) {
             return res.status(401).json({ message: 'Role not found in token' });
         }
-
-
         next()
 
     } catch (error) {
@@ -47,22 +43,10 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
 
 }
 
-
-// export const restrict=async(req:Request,res:Response,next:NextFunction){
-
-
-//     const {userId,role}=req.user
-
-//     let user;
-
-//     cpoo
-// }
-
 export const isBlocked = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
         let Id = (req as any)?.user.id
-
 
         const user = await userModel.findById(Id)
 
@@ -78,3 +62,44 @@ export const isBlocked = async (req: Request, res: Response, next: NextFunction)
         return res.status(500).json({ message: (error as Error).message })
     }
 }
+
+
+
+export const AdminroleCheck = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        let Id = (req as any)?.user.id;
+        const user = await userModel.findById(Id);
+
+        if (user) {
+            const UserRole = user.role;
+            if (UserRole !== "admin") {
+                return res.status(200).json({ success: false, message: `This is not admin` });
+            } else {
+                next();
+            }
+        }
+    } catch (error) {
+        return res.status(500).json({ message: (error as Error).message });
+    }
+};
+
+export const DocRoleCheck = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        let Id = (req as any)?.user.id;
+        const user = await userModel.findById(Id);
+        if (user) {
+            const UserRole = user.role;
+            if (UserRole !== "doctor") {
+                return res.status(200).json({ success: false, message: `This is not doctor`,notAdmin:true });
+            } else {
+                next();
+            }
+        }
+    } catch (error) {
+        return res.status(500).json({ message: (error as Error).message });
+    }
+};
+
+
+
+

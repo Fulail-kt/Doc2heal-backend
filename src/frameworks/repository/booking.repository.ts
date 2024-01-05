@@ -20,7 +20,7 @@ class BookingRepository{
                 
                 return booking;
             } else {
-                console.log('Booking not found');
+                return null
                
             }
         } catch (error) {
@@ -106,10 +106,8 @@ class BookingRepository{
 
         const bookings = await bookingModel.find({ userId: convertedUserId }).populate('doctorId');
 
-        if (bookings ) {
-            console.log('Bookings found:', bookings);
-            
-            return bookings;
+        if (bookings ) {       
+          return bookings;
         } 
     } catch (error) {
         console.error('Error finding bookings:', (error as Error).message);
@@ -117,16 +115,17 @@ class BookingRepository{
     }
     }
 
-    async findByIdAndUpdate(userId: string, bookingData: { username: string, age: number, note: string, bkId: string }) {
+    async findByIdAndUpdate(userId: string|any, bookingData: { username?: string, age?: number, note?: string, bkId?: string,status?:string,prescription?:string }) {
         try {
             let bookingId = new mongoose.Types.ObjectId(bookingData.bkId);
-    
+
             const updateData = {
-                status: 'booked',
+                status: bookingData.status,
                 note: bookingData.note,
                 userAge: bookingData.age,
                 userName: bookingData.username,
-                userId: new mongoose.Types.ObjectId(userId)
+                userId: new mongoose.Types.ObjectId(userId),
+                prescription:bookingData.prescription
             };
     
             const updatedBooking = await bookingModel.findByIdAndUpdate(bookingId, updateData, { new: true });

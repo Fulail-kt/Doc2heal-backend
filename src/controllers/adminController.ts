@@ -81,6 +81,35 @@ class adminController {
         }
     }
 
+    async paymentRequests(req:Request,res:Response){
+        try {
+            const status:any = req.query.status
+            const response=await this.adminuseCase.paymentRequests(status)
+            if(!response.success){
+                return res.status(200).json({success:false,message:response.message})
+            }
+            return res.status(200).json({success:true,message:response.message,payment:response?.payment})
+        } catch (error) {
+            res.status(500).json({ messge: 'an error occured' })
+        }
+    }
+
+    async updatePayment(req:Request,res:Response){
+        try {
+            const {id,status}=req.body
+
+            const response=await this.adminuseCase.updatePayment(id,status)
+            if(!response.success){
+                return res.status(200).json({success:false,message:response.message})
+            }
+            return res.status(200).json({success:true,message:response.message,payment:response?.payment})
+        } catch (error) {
+            res.status(500).json({ messge: 'an error occured' })
+        }
+    }
+
+
+
 }
 
 export default adminController

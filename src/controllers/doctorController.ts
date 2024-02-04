@@ -200,6 +200,7 @@ class DoctorController {
         }
     }
     
+    
       async paymentRequest(req:Request,res:Response){
         try {
             const doctorId:any=req.query.id

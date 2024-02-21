@@ -269,9 +269,31 @@ class UserRepository {
               const booking={
                Completed:completedCount,Booked:bookedCount,Cancelled:cancelledCount
               }
+
+              const data= await userModel.aggregate([
+                {
+                  $group: {
+                    _id: null,
+                    totalPatients: { $sum: { $cond: [{ $eq: ["$role", "patient"] }, 1, 0] } },
+                    totalDoctors: { $sum: { $cond: [{ $eq: ["$role", "doctor"] }, 1, 0] } },
+                    totalBlocked: { $sum: { $cond: [{ $eq: ["$isBlocked", true] }, 1, 0] } },
+                    totalUnblocked: { $sum: { $cond: [{ $eq: ["$isBlocked", false] }, 1, 0] } },
+                    totalMale: { $sum: { $cond: [{ $eq: ["$gender", "male"] }, 1, 0] } },
+                    totalFemale: { $sum: { $cond: [{ $eq: ["$gender", "female"] }, 1, 0] } },
+                    totalSubmitted: { $sum: { $cond: [{ $eq: ["$formStatus", "submitted"] }, 1, 0] } },
+                    totalRejected: { $sum: { $cond: [{ $eq: ["$formStatus", "rejected"] }, 1, 0] } },
+                    totalAccepted: { $sum: { $cond: [{ $eq: ["$formStatus", "Accepted"] }, 1, 0] } }
+                  }
+                }
+              ])
               
+              
+              
+              console.log(data)
+              
+
             if (result) {
-                return ({result,booking})
+                return ({result,booking,data})
             } else {
                 null
             }

@@ -451,9 +451,8 @@ class UserController {
     async saveDocuments(req: CustomRequest, res: Response) {
         try {
           const Id = (req as any)?.user.id;
-      
-          if (req?.file) {
-            const documents = req.file as any;
+          if (req?.file || req?.files) {
+            const documents = req.files || req.file as any;
             let docs: any[] = [];
             if (documents && documents.length > 0) {
               const documentPaths = await Promise.all(documents.map(async (document: { path: string; }) => {
